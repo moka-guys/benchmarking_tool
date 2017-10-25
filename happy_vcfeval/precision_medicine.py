@@ -9,7 +9,9 @@ import smtplib
 import re
 import shutil
 import gzip
+from django.conf import settings
 from precision_medicine_config import *
+
 
 class upload2Nexus():
     ''' ''' 
@@ -116,7 +118,7 @@ class upload2Nexus():
             open_func = open
             open_mode = 'r'
         try:
-        	#open vcf header as t and the query vcf with the required settings as q and output file as binary output o
+            #open vcf header as t and the query vcf with the required settings as q and output file as binary output o
             with open(vcf_header, 'r') as t, open_func(query_vcf, open_mode) as q, gzip.open(output_vcf, 'wb') as o:
                 # for each line in q if it's not a header take the first 6 columns of each row, then add two full stops (replacing the filter and info ), then just include the GT field of format and sample columns.
                 output = "\n".join(["\t".join(line.rstrip().split('\t')[:6] 
@@ -484,10 +486,10 @@ class upload2Nexus():
 
 
             # send email
-            self.email_subject = "Benchmarking Tool: job finished"
+            self.email_subject = "Benchmarking Tool: Job Finished"
             self.email_priority = 3
 
-            self.email_message = "Analysis complete. please download your files from:\n"+ip+"/mark"+os.path.join(self.path.split("media")[1],self.timestamp+".tar.gz")+"\nsummary (taken from "+self.timestamp+".summary.csv\nSNP recall (sensitivity)= "+snp_recall+"\nSNP precision (PPV) = "+snp_precision+"\nINDEL recall (sensitivity)= "+indel_recall+"\nINDEL precision (PPV) = "+indel_precision+"\n\nThanks for using this tool!"
+            self.email_message = "Analysis complete. Please download your files from:\n"+ip+os.path.join(settings.MEDIA_URL,self.path.split("media/")[1],self.timestamp+".tar.gz")+"\nsummary (taken from "+self.timestamp+".summary.csv\nSNP recall (sensitivity)= "+snp_recall+"\nSNP precision (PPV) = "+snp_precision+"\nINDEL recall (sensitivity)= "+indel_recall+"\nINDEL precision (PPV) = "+indel_precision+"\n\nThanks for using this tool!"
             self.send_an_email()
             self.logfile=open(self.logfile_name,'a')
             self.logfile.write("finished download.\ndeleting download script\n")
