@@ -21,6 +21,7 @@ class upload2Nexus():
         self.email=""
         self.vcf_filepath=""
         self.vcf_basename=""
+        self.vcf_orig_basename=""
         self.bed_filepath=""
         self.bed_basename=""
         self.app_panel_bed=""
@@ -72,7 +73,9 @@ class upload2Nexus():
         self.email=email
         self.vcf_filepath=vcf_file
         #build path and filename
-        self.vcf_basename=os.path.basename(self.vcf_filepath)
+        self.vcf_basename=os.path.basename(self.vcf_filepath) 
+        #The vcf_basename will get updated after the vcf has been stripped, but need to put the original filename in email sent to users, so take a copy of filename
+        self.vcf_basename_orig=self.vcf_basename
         self.path=os.path.dirname(self.vcf_filepath)
 
         if bed_file:
@@ -84,8 +87,8 @@ class upload2Nexus():
         #capture timestamp
         self.timestamp=self.path.split("/")[-1]
 
-        # add timestamp to the generic error email message
-        self.generic_error_email=self.generic_error_email + self.timestamp
+        # add vcf and timestamp to the generic error email message
+        self.generic_error_email="vcf = " + self.vcf_basename_orig + "\n\n" + self.generic_error_email + self.timestamp
         
         #update nexus folder so it is Tests/timestamp
         self.nexus_folder=self.nexus_folder+self.path.split("/")[-1]
@@ -133,13 +136,13 @@ class upload2Nexus():
             #send an error email to mokaguys
             self.email_subject = "Benchmarking Tool: stderr reported when running job "
             self.email_priority = 1 # high priority
-            self.email_message = "email="+self.email+"\noutput="+self.timestamp+"\nerror="+str(e) # state all inputs and error 
+            self.email_message = "vcf="+self.vcf_basename_orig+"\nemail="+self.email+"\noutput="+self.timestamp+"\nerror="+str(e) # state all inputs and error 
             self.send_an_email()
 
             #send an error email to user
             self.email_subject = "Benchmarking Tool: Invalid VCF file "
             self.email_priority = 1 # high priority
-            self.email_message = ("An error was encountered whilst reading the VCF file supplied.\n\nPlease ensure that the VCF (.vcf) or gzipped VCF (.vcf.gz) file supplied conforms the VCF specification, and includes genotype information (using GT tag) in the FORMAT and SAMPLE fields.\n\nIf you continue to experience issues please reply to this email quoting the below code:\n\n" + self.timestamp)
+            self.email_message = ("An error was encountered whilst reading VCF:\n" + self.vcf_basename_orig + "\n\nPlease ensure that the VCF (.vcf) or gzipped VCF (.vcf.gz) file supplied conforms the VCF specification, is sorted, and includes genotype information (using GT tag) in the FORMAT and SAMPLE fields.\n\nIf you continue to experience issues please reply to this email quoting the below code:\n\n" + self.timestamp)
             self.you = [self.email]
             self.send_an_email()
 
@@ -255,7 +258,7 @@ class upload2Nexus():
                 #send a error email
                 self.email_subject = "Benchmarking Tool: stderr reported when running job "
                 self.email_priority = 1 # high priority
-                self.email_message = "email="+self.email+"\noutput="+self.timestamp+"\nerror="+err # state all inputs and error 
+                self.email_message = "vcf="+self.vcf_basename_orig+"\nemail="+self.email+"\noutput="+self.timestamp+"\nerror="+err # state all inputs and error 
                 self.send_an_email()
                 
                 #send a error email to user
@@ -373,7 +376,7 @@ class upload2Nexus():
                 #send a error email
                 self.email_subject = "Benchmarking Tool: job has failed or hasn't finished after 45 mins "
                 self.email_priority = 1
-                self.email_message = "email="+self.email+"\noutput="+self.timestamp+"\nnexus_job_id="+self.analysis_id+"\n\nlast 50 lines of STDERR from app:\n"+app_std_error
+                self.email_message = "vcf="+self.vcf_basename_orig+"\nemail="+self.email+"\noutput="+self.timestamp+"\nnexus_job_id="+self.analysis_id+"\n\nlast 50 lines of STDERR from app:\n"+app_std_error
                 self.send_an_email()
 
                 #send a error email to user
@@ -451,7 +454,7 @@ class upload2Nexus():
             #send a error email
             self.email_subject = "Benchmarking Tool: cannot download from nexus"
             self.email_priority = 1
-            self.email_message = "email="+self.email+"\noutput="+self.timestamp+"\nerr="+err
+            self.email_message = "vcf="+self.vcf_basename_orig+"\nemail="+self.email+"\noutput="+self.timestamp+"\nerr="+err
             self.send_an_email()
 
             #send a error email to user
@@ -489,7 +492,7 @@ class upload2Nexus():
             self.email_subject = "Benchmarking Tool: Job Finished"
             self.email_priority = 3
 
-            self.email_message = "Analysis complete. Please download your files from:\n"+ip+os.path.join(settings.MEDIA_URL,self.path.split("media/")[1],self.timestamp+".tar.gz")+"\nsummary (taken from "+self.timestamp+".summary.csv\nSNP recall (sensitivity)= "+snp_recall+"\nSNP precision (PPV) = "+snp_precision+"\nINDEL recall (sensitivity)= "+indel_recall+"\nINDEL precision (PPV) = "+indel_precision+"\n\nThanks for using this tool!"
+            self.email_message = "Analysis complete for vcf:\n" + self.vcf_basename_orig + "\n\nPlease download your files from:\n"+ip+os.path.join(settings.MEDIA_URL,self.path.split("media/")[1],self.timestamp+".tar.gz")+"\n\nSummary (taken from "+self.timestamp+".summary.csv)\nSNP recall (sensitivity)= "+snp_recall+"\nSNP precision (PPV) = "+snp_precision+"\nINDEL recall (sensitivity)= "+indel_recall+"\nINDEL precision (PPV) = "+indel_precision+"\n\nThanks for using this tool!"
             self.send_an_email()
             self.logfile=open(self.logfile_name,'a')
             self.logfile.write("finished download.\ndeleting download script\n")
