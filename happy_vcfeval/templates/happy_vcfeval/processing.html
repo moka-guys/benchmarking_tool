@@ -1,0 +1,9 @@
+
+{% extends 'happy_vcfeval/base.html' %}
+{% block content %}
+{% load static %}
+      <div class="alert alert-success">
+        <p class="text-center"><b>File processing. You will be sent an email containing a link to the results.</b></p>
+      </div>
+      <div class="text-center"><a href={% url 'happy_vcfeval:upload' %}>Submit another job</a></div>
+{% endblock %}
