@@ -241,7 +241,7 @@ class upload2Nexus():
         #write source cmd
         run_bash_script.write(self.source_command)
         #can't use dest and project together so inorder to specify dest need to preselect the project
-        run_bash_script.write("dx select 003_public_variant_calling_benchmarking "+self.auth+"\n")
+        run_bash_script.write("dx select " + data_project_id.replace(":","") + " " + self.auth+"\n")
         #write dx run cmd
         run_bash_script.write(dxrun_cmd+"\n")
         #echo the job id to use to monitor progress
