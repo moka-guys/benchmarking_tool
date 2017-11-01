@@ -21,15 +21,15 @@ def upload(request):
     if request.method == 'POST':
         form = upload_form(request.POST, request.FILES) #Pass posted data to form object for validation
         if form.is_valid(): # if submitted data passes validation
-            illegal_chars = r'[ \\/*?:\"<>|]' # whitespace and characters to be removed from filename
             email = request.POST["email"]
             vcf_file = request.FILES["vcf_file"]
             timestamp = time.strftime("%y%m%d_%H%M%S")
             # Save the uploaded file(s), and remove any illegal characters or whitespace from filename
             fs = FileSystemStorage(settings.MEDIA_ROOT + timestamp, settings.MEDIA_URL + timestamp)
             vcf_filename_orig = fs.save(vcf_file.name, vcf_file)
-            vcf_filepath_orig = settings.MEDIA_ROOT + timestamp + "/" + vcf_filename_orig           
-            vcf_filename = re.sub(illegal_chars, '', vcf_filename_orig)
+            vcf_filepath_orig = settings.MEDIA_ROOT + timestamp + "/" + vcf_filename_orig
+            #Replace any whitespace/special characters in filename with underscores
+            vcf_filename = re.sub('[^0-9a-zA-Z.\-/]+', '_', vcf_filename_orig)
             vcf_filepath = settings.MEDIA_ROOT + timestamp + "/" + vcf_filename
             os.rename(vcf_filepath_orig, vcf_filepath)
             # if user supplied bed file...           
@@ -37,7 +37,8 @@ def upload(request):
                 bed_file = request.FILES["bed_file"]
                 bed_filename_orig = fs.save(bed_file.name, bed_file)
                 bed_filepath_orig = settings.MEDIA_ROOT + timestamp + "/" + bed_filename_orig
-                bed_filename = re.sub(illegal_chars, '', bed_filename_orig)
+                #Replace any whitespace/special characters in filename with underscores
+                bed_filename = re.sub('[^0-9a-zA-Z.\-/]+', '_', bed_filename_orig)
                 bed_filepath = settings.MEDIA_ROOT + timestamp + "/" + bed_filename
                 os.rename(bed_filepath_orig, bed_filepath)
                 # run dna_nexus in background thread
