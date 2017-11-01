@@ -50,7 +50,7 @@ class upload2Nexus():
         self.dest = " --folder " # nexus folder
         self.nexus_folder="/Tests/" # path to files in project
         self.end_of_upload=" --do-not-compress " # don't compress upload
-        self.base_cmd="jobid=$(dx run "+project+workflow_path+" -y" # start of dx run command
+        self.base_cmd="jobid=$(dx run "+app_project_id+app_path+" -y" # start of dx run command
         self.token = " --brief --auth-token "+Nexus_API_Key+")" # authentication for dx run
 
         #variable to catch the analysis id of job
@@ -176,9 +176,9 @@ class upload2Nexus():
         
         # upload command 
         #eg path/to/ua  --auth-token abc  --project  projectname --folder /nexus/path --do-not-compress /file/to/upload
-        upload_cmd=self.upload_agent+self.auth+ self.nexusprojectstring+project.replace(":","")+ self.dest + self.nexus_folder+self.end_of_upload + "'{}'".format(self.vcf_filepath)
+        upload_cmd=self.upload_agent+self.auth+ self.nexusprojectstring+data_project_id.replace(":","")+ self.dest + self.nexus_folder+self.end_of_upload + "'{}'".format(self.vcf_filepath)
         if self.bed_filepath:
-            upload_cmd+="\n"+self.upload_agent+self.auth+ self.nexusprojectstring+project.replace(":","")+ self.dest + self.nexus_folder+self.end_of_upload + "'{}'".format(self.bed_filepath)
+            upload_cmd+="\n"+self.upload_agent+self.auth+ self.nexusprojectstring+data_project_id.replace(":","")+ self.dest + self.nexus_folder+self.end_of_upload + "'{}'".format(self.bed_filepath)
         
         #write the source and upload cmds
         upload_bash_script.write(self.source_command)
@@ -231,16 +231,16 @@ class upload2Nexus():
         run_bash_script=open(run_bash_script_name,'w')
         
         if self.bed_filepath:
-            self.app_panel_bed= " -ipanel_bed="+"'{}'".format(project+self.nexus_folder +"/"+ self.bed_basename)
+            self.app_panel_bed= " -ipanel_bed="+"'{}'".format(data_project_id+self.nexus_folder +"/"+ self.bed_basename)
         else:
             self.app_panel_bed=app_panel_bed
         # dx run  command
         #eg dxrun_cmd=self.base_cmd+workflow_query_vcf + project+self.nexus_folder +"/"+ self.vcf_basename +workflow_output_name+self.output+self.nexusprojectstring+project_id+self.token+";echo $jobid"
-        dxrun_cmd=self.base_cmd+app_query_vcf + "'{}'".format(project+self.nexus_folder +"/"+ self.vcf_basename) +app_prefix+self.timestamp + app_truth_vcf+self.app_panel_bed+app_high_conf_bed+app_truth+self.dest+self.nexus_folder+self.token
+        dxrun_cmd=self.base_cmd+app_query_vcf + "'{}'".format(data_project_id+self.nexus_folder +"/"+ self.vcf_basename) +app_prefix+self.timestamp + app_truth_vcf+self.app_panel_bed+app_high_conf_bed+app_truth+self.dest+self.nexus_folder+self.token
         
         #write source cmd
         run_bash_script.write(self.source_command)
-        #can use dest and project together so inorder to specify dest need to preselect the project
+        #can't use dest and project together so inorder to specify dest need to preselect the project
         run_bash_script.write("dx select 003_public_variant_calling_benchmarking "+self.auth+"\n")
         #write dx run cmd
         run_bash_script.write(dxrun_cmd+"\n")
@@ -292,7 +292,7 @@ class upload2Nexus():
         self.logfile.write("monitoring progress\n")
         self.logfile.close()
         # command which returns a job-id within the project if successfully completed
-        status_cmd="dx find jobs --project "+project_id+" --id "+self.analysis_id.rstrip()+" --brief --state done"
+        status_cmd="dx find jobs --project "+data_project_id+" --id "+self.analysis_id.rstrip()+" --brief --state done"
         
         # create bash script name
         status_bash_script_name=os.path.join(self.working_dir,self.path,self.timestamp+"_status.sh")
@@ -306,7 +306,7 @@ class upload2Nexus():
         status_bash_script.close() 
 
         # command which returns a job-id within the project if successfully completed
-        fail_status_cmd="dx find jobs --project "+project_id+" --id "+self.analysis_id.rstrip()+" --brief --state failed"
+        fail_status_cmd="dx find jobs --project "+data_project_id+" --id "+self.analysis_id.rstrip()+" --brief --state failed"
         
         # create bash script name
         fail_status_bash_script_name=os.path.join(self.working_dir,self.path,self.timestamp+"_fail_status.sh")
@@ -423,7 +423,7 @@ class upload2Nexus():
         self.logfile.write("Job done, downloading\n")
         self.logfile.close()
         # command to download files. downloads all files that have been output by the app (will have prefix self.output)
-        download_cmd="dx download "+project+self.nexus_folder +"/"+self.timestamp+"*"+self.auth
+        download_cmd="dx download "+data_project_id+self.nexus_folder +"/"+self.timestamp+"*"+self.auth
         # create download script name
         download_bash_script_name=os.path.join(self.working_dir,self.path,self.timestamp+"_download.sh")
         #open script
