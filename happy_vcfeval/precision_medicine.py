@@ -40,7 +40,7 @@ class upload2Nexus():
 
         ################ DNA Nexus###############################
         #path to upload agent
-        self.upload_agent = "/home/mokagals/apps/dnanexus-upload-agent-1.5.26-linux/ua"# server
+        self.upload_agent = upload_agent
               
         # source command
         self.source_command = "#!/bin/bash\n. /etc/profile.d/dnanexus.environment.sh\n"
