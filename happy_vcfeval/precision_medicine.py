@@ -21,7 +21,7 @@ class upload2Nexus():
         self.email=""
         self.vcf_filepath=""
         self.vcf_basename=""
-        self.vcf_orig_basename=""
+        self.vcf_basename_orig=""
         self.bed_filepath=""
         self.bed_basename=""
         self.app_panel_bed=""
@@ -57,7 +57,7 @@ class upload2Nexus():
         self.analysis_id=""
         
         ################ Emails###############################
-        self.you=['gst-tr.mokaguys@nhs.net']
+        self.you=[you]
         self.smtp_do_tls = True
         self.email_subject = "" 
         self.email_message = ""
@@ -236,7 +236,7 @@ class upload2Nexus():
             self.app_panel_bed=app_panel_bed
         # dx run  command
         #eg dxrun_cmd=self.base_cmd+workflow_query_vcf + project+self.nexus_folder +"/"+ self.vcf_basename +workflow_output_name+self.output+self.nexusprojectstring+project_id+self.token+";echo $jobid"
-        dxrun_cmd=self.base_cmd+app_query_vcf + "'{}'".format(data_project_id+self.nexus_folder +"/"+ self.vcf_basename) +app_prefix+self.timestamp + app_truth_vcf+self.app_panel_bed+app_high_conf_bed+app_truth+self.dest+self.nexus_folder+self.token
+        dxrun_cmd=self.base_cmd+app_query_vcf + "'{}'".format(data_project_id+self.nexus_folder +"/"+ self.vcf_basename) +app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0] + app_truth_vcf+self.app_panel_bed+app_high_conf_bed+app_truth+self.dest+self.nexus_folder+self.token
         
         #write source cmd
         run_bash_script.write(self.source_command)
@@ -332,7 +332,7 @@ class upload2Nexus():
                 self.logfile.write("job not finished. waited for "+str(count)+ " minutes so far\n")
                 self.logfile.close()
                 
-                print "job not finished. waited for "+str(count)+ " minutes so far"
+                #print "job not finished. waited for "+str(count)+ " minutes so far"
                 
                 #increase count
                 count+=1
@@ -419,11 +419,13 @@ class upload2Nexus():
 
 
     def download_result(self):
+
         self.logfile=open(self.logfile_name,'a')
         self.logfile.write("Job done, downloading\n")
         self.logfile.close()
+
         # command to download files. downloads all files that have been output by the app (will have prefix self.output)
-        download_cmd="dx download "+data_project_id+self.nexus_folder +"/"+self.timestamp+"*"+self.auth
+        download_cmd="dx download "+data_project_id+self.nexus_folder +"/happy."+ self.vcf_basename_orig.split(".vcf")[0] + "*" +self.auth
         # create download script name
         download_bash_script_name=os.path.join(self.working_dir,self.path,self.timestamp+"_download.sh")
         #open script
@@ -439,7 +441,7 @@ class upload2Nexus():
 
         # run the command
         proc = subprocess.Popen(["bash "+download_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
-            
+        
         # capture the streams
         (out, err) = proc.communicate()
         self.logfile=open(self.logfile_name,'a')
@@ -469,7 +471,7 @@ class upload2Nexus():
             self.you.append(self.email)
             
             #open the summary file to get recall and precision
-            summary_csv=open(os.path.join(self.path,self.timestamp+".summary.csv"),'r')
+            summary_csv=open(os.path.join(self.path,"happy."+ self.vcf_basename_orig.split(".vcf")[0] + ".summary.csv"),'r')
             # loop through loking for indel result
             for line in summary_csv:
                 if line.startswith("SNP,PASS"):
@@ -487,12 +489,11 @@ class upload2Nexus():
             #close file
             summary_csv.close()
 
-
             # send email
             self.email_subject = "Benchmarking Tool: Job Finished"
             self.email_priority = 3
 
-            self.email_message = "Analysis complete for vcf:\n" + self.vcf_basename_orig + "\n\nPlease download your files from:\n"+ip+os.path.join(settings.MEDIA_URL,self.path.split("media/")[1],self.timestamp+".tar.gz")+"\n\nSummary (taken from "+self.timestamp+".summary.csv)\nSNP recall (sensitivity)= "+snp_recall+"\nSNP precision (PPV) = "+snp_precision+"\nINDEL recall (sensitivity)= "+indel_recall+"\nINDEL precision (PPV) = "+indel_precision+"\n\nThanks for using this tool!"
+            self.email_message = "Analysis complete for vcf:\n" + self.vcf_basename_orig + "\n\nPlease download your files from:\n"+ip+os.path.join(settings.MEDIA_URL,self.path.split("media/")[1],"happy."+ self.vcf_basename_orig.split(".vcf")[0] + ".tar.gz")+"\n\nSummary (taken from " + "happy." + self.vcf_basename_orig.split(".vcf")[0] + ".summary.csv)\nSNP recall (sensitivity)= "+snp_recall+"\nSNP precision (PPV) = "+snp_precision+"\nINDEL recall (sensitivity)= "+indel_recall+"\nINDEL precision (PPV) = "+indel_precision+"\n\nThanks for using this tool!"
             self.send_an_email()
             self.logfile=open(self.logfile_name,'a')
             self.logfile.write("finished download.\ndeleting download script\n")
