@@ -9,6 +9,7 @@ import smtplib
 import re
 import shutil
 import gzip
+import tarfile
 from django.conf import settings
 from precision_medicine_config import *
 
@@ -470,22 +471,30 @@ class upload2Nexus():
             # add the user email to the email message
             self.you.append(self.email)
             
-            #open the summary file to get recall and precision
-            summary_csv=open(os.path.join(self.path,"happy."+ self.vcf_basename_orig.split(".vcf")[0] + ".summary.csv"),'r')
+            #open the extended summary file to get recall and precision
+            summary_csv=tarfile.open(os.path.join(self.path,"happy."+ self.vcf_basename_orig.split(".vcf")[0] + ".tar.gz")).extractfile("happy."+ self.vcf_basename_orig.split(".vcf")[0] + '.extended.csv')
             # loop through loking for indel result
             for line in summary_csv:
-                if line.startswith("SNP,PASS"):
+                if line.startswith("SNP,*,*,PASS"):
                     # split the line on comma
                     splitline=line.split(",")
                     #capture required columns
-                    snp_recall=splitline[9]
-                    snp_precision=splitline[10]
-                elif line.startswith("INDEL,PASS"):
+                    snp_recall=float(splitline[7])
+                    snp_recall_lowerCI=float(splitline[65])
+                    snp_recall_upperCI=float(splitline[66])
+                    snp_precision=float(splitline[8])
+                    snp_precision_lowerCI=float(splitline[67])
+                    snp_precision_upperCI=float(splitline[68])
+                elif line.startswith("INDEL,*,*,PASS"):
                     # split the line on comma
                     splitline=line.split(",")
                     #capture required columns
-                    indel_recall=splitline[9]
-                    indel_precision=splitline[10]
+                    indel_recall=float(splitline[7])
+                    indel_recall_lowerCI=float(splitline[65])
+                    indel_recall_upperCI=float(splitline[66])
+                    indel_precision=float(splitline[8])
+                    indel_precision_lowerCI=float(splitline[67])
+                    indel_precision_upperCI=float(splitline[68])
             #close file
             summary_csv.close()
 
@@ -493,7 +502,7 @@ class upload2Nexus():
             self.email_subject = "Benchmarking Tool: Job Finished"
             self.email_priority = 3
 
-            self.email_message = "Analysis complete for vcf:\n" + self.vcf_basename_orig + "\n\nPlease download your files from:\n"+ip+os.path.join(settings.MEDIA_URL,self.path.split("media/")[1],"happy."+ self.vcf_basename_orig.split(".vcf")[0] + ".tar.gz")+"\n\nSummary (taken from " + "happy." + self.vcf_basename_orig.split(".vcf")[0] + ".summary.csv)\nSNP recall (sensitivity)= "+snp_recall+"\nSNP precision (PPV) = "+snp_precision+"\nINDEL recall (sensitivity)= "+indel_recall+"\nINDEL precision (PPV) = "+indel_precision+"\n\nThanks for using this tool!"
+            self.email_message = "Analysis complete for vcf:\n" + self.vcf_basename_orig + "\n\nPlease download your files from:\n"+ip+os.path.join(settings.MEDIA_URL,self.path.split("media/")[1],"happy."+ self.vcf_basename_orig.split(".vcf")[0] + ".tar.gz")+"\n\nSummary (taken from " + "happy." + self.vcf_basename_orig.split(".vcf")[0] + ".extended.csv):\n\nSNP recall (sensitivity)= " + str(round(snp_recall, 5)) + " (95% CI: " + str(round(snp_recall_lowerCI, 5)) + " - " + str(round(snp_recall_upperCI, 5)) + ")\nSNP precision (PPV) = "+ str(round(snp_precision, 5)) + " (95% CI: " + str(round(snp_precision_lowerCI, 5)) + " - " + str(round(snp_precision_upperCI, 5)) + ")\nINDEL recall (sensitivity)= " + str(round(indel_recall, 5)) + " (95% CI: " + str(round(indel_recall_lowerCI, 5)) + " - " + str(round(indel_recall_upperCI, 5)) + ")\nINDEL precision (PPV) = "+str(round(indel_precision, 5)) + " (95% CI: " + str(round(indel_precision_lowerCI, 5)) + " - " + str(round(indel_precision_upperCI, 5)) + ")\n\nThanks for using this tool!"
             self.send_an_email()
             self.logfile=open(self.logfile_name,'a')
             self.logfile.write("finished download.\ndeleting download script\n")
