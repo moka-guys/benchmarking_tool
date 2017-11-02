@@ -193,19 +193,6 @@ class upload2Nexus():
             
         # capture the streams (err is redirected to out above)
         (out, err) = proc.communicate()
-        # if err:
-        #     #send a error email
-        #     self.email_subject = "Benchmarking Tool: stderr reported when uploading file "
-        #     self.email_priority = 1
-        #     self.email_message = "email="+self.email+"\noutput="+self.generic_error_email+"\nerror="+err
-        #     self.send_an_email()
-
-        #     #send a error email to user
-        #     self.you = [self.email]
-        #     self.email_subject = user_error_subject
-        #     self.email_message = self.generic_error_email
-        #     self.send_an_email()
-
         self.logfile=open(self.logfile_name,'a')
         self.logfile.write(out+"\n")
         self.logfile.close()
@@ -332,8 +319,6 @@ class upload2Nexus():
                 self.logfile=open(self.logfile_name,'a')
                 self.logfile.write("job not finished. waited for "+str(count)+ " minutes so far\n")
                 self.logfile.close()
-                
-                #print "job not finished. waited for "+str(count)+ " minutes so far"
                 
                 #increase count
                 count+=1
@@ -528,13 +513,3 @@ class upload2Nexus():
         server.ehlo()
         server.login(user, pw)
         server.sendmail(me, self.you, m.as_string())
-
-if __name__ == '__main__':
-    # Create instance of get_list_of_runs
-    upload = upload2Nexus()
-    # call function
-    #upload.take_inputs(sys.argv[1:])
-    email="aledjones@nhs.net"
-    file='/NA12878_SOPHIA_4_VCF.vcf.gz'
-    bed=''
-    upload.take_inputs(email,file,bed)
