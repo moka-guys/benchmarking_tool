@@ -52,12 +52,14 @@ def upload(request):
             # If validation failed, reload the form which will display the error messages from failed validation
             return render(request, 'happy_vcfeval/upload.html', {'form': form, 
                                                                  'known_issues': known_issues, 
+                                                                 'happy_version': happy_version,
                                                                  'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
                                                                  'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
     else:
     	form = upload_form()
     	return render(request, 'happy_vcfeval/upload.html', {'form': form, 
-                                                             'known_issues': known_issues, 
+                                                             'known_issues': known_issues,
+                                                             'happy_version': happy_version, 
                                                              'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
                                                              'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
 
