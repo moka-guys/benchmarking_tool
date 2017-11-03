@@ -21,6 +21,9 @@ def upload(request):
     # Create list of any issues in known_issues.txt so that they can be displayed on page
     with open(settings.BASE_DIR + '/known_issues.txt', 'r') as f:
         known_issues = [x for x in f if not x.startswith("#")]
+    # Create list of any new features in new_features.txt so that they can be displayed on page
+    with open(settings.BASE_DIR + '/new_features.txt', 'r') as f:
+        new_features = [x for x in f if not x.startswith("#")]
     # If data has been submitted...
     if request.method == 'POST':
         # Pass posted data to form upload_form object for validation
@@ -66,6 +69,7 @@ def upload(request):
             return render(request, 'happy_vcfeval/upload.html', {'form': form,
                                                                  'tool_version': config.tool_version,
                                                                  'known_issues': known_issues,
+                                                                 'new_features': new_features,
                                                                  'happy_version': config.happy_version,
                                                                  'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
                                                                  'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
@@ -75,6 +79,7 @@ def upload(request):
         return render(request, 'happy_vcfeval/upload.html', {'form': form,
                                                              'tool_version': config.tool_version,
                                                              'known_issues': known_issues,
+                                                             'new_features': new_features,
                                                              'happy_version': config.happy_version,
                                                              'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
                                                              'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
