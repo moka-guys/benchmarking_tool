@@ -64,6 +64,7 @@ def upload(request):
         else:
             # If validation failed, reload the form which will display the error messages from failed validation
             return render(request, 'happy_vcfeval/upload.html', {'form': form,
+                                                                 'tool_version': config.tool_version,
                                                                  'known_issues': known_issues,
                                                                  'happy_version': config.happy_version,
                                                                  'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
@@ -72,6 +73,7 @@ def upload(request):
     else:
         form = upload_form()
         return render(request, 'happy_vcfeval/upload.html', {'form': form,
+                                                             'tool_version': config.tool_version,
                                                              'known_issues': known_issues,
                                                              'happy_version': config.happy_version,
                                                              'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
@@ -80,4 +82,4 @@ def upload(request):
 
 # page displayed to inform user file is being processed
 def processing(request):
-    return render(request, 'happy_vcfeval/processing.html')
+    return render(request, 'happy_vcfeval/processing.html', {'tool_version': config.tool_version})
