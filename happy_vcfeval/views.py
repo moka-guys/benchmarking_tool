@@ -7,7 +7,7 @@ import os
 import re
 import threading
 import time
-from precision_medicine import upload2Nexus
+from precision_medicine import *
 
 
 # Upload to nexus and run app
