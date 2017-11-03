@@ -8,7 +8,7 @@ import time
 
 from django.conf import settings
 from email.Message import Message
-from precision_medicine_config import *
+import precision_medicine_config as config
 
 
 class upload2Nexus(object):
@@ -37,31 +37,31 @@ class upload2Nexus(object):
 
         ################ DNA Nexus###############################
         # path to upload agent
-        self.upload_agent = upload_agent
+        self.upload_agent = config.upload_agent
 
         # source command
         self.source_command = "#!/bin/bash\n. /etc/profile.d/dnanexus.environment.sh\n"
 
         # dx run commands and components
-        self.auth = " --auth-token " + Nexus_API_Key  # authentication string
+        self.auth = " --auth-token " + config.Nexus_API_Key  # authentication string
         self.nexusprojectstring = "  --project  "  # nexus project
         self.dest = " --folder "  # nexus folder
         self.nexus_folder = "/Tests/"  # path to files in project
         self.end_of_upload = " --do-not-compress "  # don't compress upload
-        self.base_cmd = "jobid=$(dx run " + app_project_id + app_path + " -y"  # start of dx run command
-        self.token = " --brief --auth-token " + Nexus_API_Key + ")"  # authentication for dx run
+        self.base_cmd = "jobid=$(dx run " + config.app_project_id + config.app_path + " -y"  # start of dx run command
+        self.token = " --brief --auth-token " + config.Nexus_API_Key + ")"  # authentication for dx run
 
         # variable to catch the analysis id of job
         self.analysis_id = ""
 
         ################ Emails###############################
-        self.you = [you]
+        self.you = [config.you]
         self.smtp_do_tls = True
         self.email_subject = ""
         self.email_message = ""
         self.email_priority = 3
 
-        self.generic_error_email = user_error_message
+        self.generic_error_email = config.user_error_message
 
     def take_inputs(self, email, vcf_file, bed_file):
         '''Capture the input arguments'''
@@ -181,11 +181,11 @@ class upload2Nexus(object):
 
         # upload command 
         # eg path/to/ua  --auth-token abc  --project  projectname --folder /nexus/path --do-not-compress /file/to/upload
-        upload_cmd = (self.upload_agent + self.auth + self.nexusprojectstring + data_project_id.replace(":", "")
+        upload_cmd = (self.upload_agent + self.auth + self.nexusprojectstring + config.data_project_id.replace(":", "")
                       + self.dest + self.nexus_folder + self.end_of_upload + "'{}'".format(self.vcf_filepath))
         if self.bed_filepath:
             upload_cmd += ("\n" + self.upload_agent + self.auth + self.nexusprojectstring
-                           + data_project_id.replace(":", "") + self.dest + self.nexus_folder + self.end_of_upload
+                           + config.data_project_id.replace(":", "") + self.dest + self.nexus_folder + self.end_of_upload
                            + "'{}'".format(self.bed_filepath))
 
         # write the source and upload cmds
@@ -228,21 +228,21 @@ class upload2Nexus(object):
 
         if self.bed_filepath:
             self.app_panel_bed = " -ipanel_bed=" + "'{}'".format(
-                data_project_id + self.nexus_folder + "/" + self.bed_basename)
+                config.data_project_id + self.nexus_folder + "/" + self.bed_basename)
         else:
-            self.app_panel_bed = app_panel_bed
+            self.app_panel_bed = config.app_panel_bed
         # dx run  command
         # eg dxrun_cmd=self.base_cmd+workflow_query_vcf + project+self.nexus_folder +"/"+ self.vcf_basename
         # +workflow_output_name+self.output+self.nexusprojectstring+project_id+self.token+";echo $jobid"
-        dxrun_cmd = (self.base_cmd + app_query_vcf + "'{}'".format(data_project_id + self.nexus_folder + "/"
-                     + self.vcf_basename) + app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0]
-                     + app_truth_vcf + self.app_panel_bed + app_high_conf_bed + app_truth + self.dest
+        dxrun_cmd = (self.base_cmd + config.app_query_vcf + "'{}'".format(config.data_project_id + self.nexus_folder + "/"
+                     + self.vcf_basename) + config.app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0]
+                     + config.app_truth_vcf + self.app_panel_bed + config.app_high_conf_bed + config.app_truth + self.dest
                      + self.nexus_folder + self.token)
 
         # write source cmd
         run_bash_script.write(self.source_command)
         # can't use dest and project together so inorder to specify dest need to preselect the project
-        run_bash_script.write("dx select " + data_project_id.replace(":", "") + " " + self.auth + "\n")
+        run_bash_script.write("dx select " + config.data_project_id.replace(":", "") + " " + self.auth + "\n")
         # write dx run cmd
         run_bash_script.write(dxrun_cmd + "\n")
         # echo the job id to use to monitor progress
@@ -266,7 +266,7 @@ class upload2Nexus(object):
 
             # send a error email to user
             self.you = [self.email]
-            self.email_subject = user_error_subject
+            self.email_subject = config.user_error_subject
             self.email_message = self.generic_error_email
             self.send_an_email()
 
@@ -295,7 +295,7 @@ class upload2Nexus(object):
         self.logfile.write("monitoring progress\n")
         self.logfile.close()
         # command which returns a job-id within the project if successfully completed
-        status_cmd = ("dx find jobs --project " + data_project_id + " --id " + self.analysis_id.rstrip()
+        status_cmd = ("dx find jobs --project " + config.data_project_id + " --id " + self.analysis_id.rstrip()
                       + " --brief --state done")
 
         # create bash script name
@@ -310,7 +310,7 @@ class upload2Nexus(object):
         status_bash_script.close()
 
         # command which returns a job-id within the project if successfully completed
-        fail_status_cmd = ("dx find jobs --project " + data_project_id + " --id " + self.analysis_id.rstrip()
+        fail_status_cmd = ("dx find jobs --project " + config.data_project_id + " --id " + self.analysis_id.rstrip()
                            + " --brief --state failed")
 
         # create bash script name
@@ -386,7 +386,7 @@ class upload2Nexus(object):
 
                 # send a error email to user
                 self.you = [self.email]
-                self.email_subject = user_error_subject
+                self.email_subject = config.user_error_subject
                 self.email_message = self.generic_error_email
                 self.send_an_email()
 
@@ -432,7 +432,7 @@ class upload2Nexus(object):
         self.logfile.close()
 
         # command to download files. downloads all files that have been output by the app (will have prefix self.output)
-        download_cmd = ("dx download " + data_project_id + self.nexus_folder + "/happy."
+        download_cmd = ("dx download " + config.data_project_id + self.nexus_folder + "/happy."
                         + self.vcf_basename_orig.split(".vcf")[0] + "*" + self.auth)
         # create download script name
         download_bash_script_name = os.path.join(self.directory, self.timestamp + "_download.sh")
@@ -472,7 +472,7 @@ class upload2Nexus(object):
 
             # send a error email to user
             self.you = [self.email]
-            self.email_subject = user_error_subject
+            self.email_subject = config.user_error_subject
             self.email_message = self.generic_error_email
             self.send_an_email()
             sys.exit()
@@ -515,7 +515,7 @@ class upload2Nexus(object):
             self.email_priority = 3
 
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
-                                  + "\n\nPlease download your files from:\n" + ip
+                                  + "\n\nPlease download your files from:\n" + config.url
                                   + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
                                   + self.vcf_basename_orig.split(".vcf")[0] + ".tar.gz") + "\n\nSummary (taken from "
                                   + "happy." + self.vcf_basename_orig.split(".vcf")[0]
@@ -530,7 +530,7 @@ class upload2Nexus(object):
                                   + str(round(indel_precision_lowerCI, 5)) + " - "
                                   + str(round(indel_precision_upperCI, 5))
                                   + ")\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
-                                  + happy_version + " (https://github.com/Illumina/hap.py)")
+                                  + config.happy_version + " (https://github.com/Illumina/hap.py)")
             self.send_an_email()
             self.logfile = open(self.logfile_name, 'a')
             self.logfile.write("finished download.\ndeleting download script\n")
@@ -550,9 +550,9 @@ class upload2Nexus(object):
         m.set_payload(self.email_message)
 
         # server details
-        server = smtplib.SMTP(host=host, port=port, timeout=10)
+        server = smtplib.SMTP(host=config.host, port=config.port, timeout=10)
         server.set_debuglevel(1)  # verbosity
         server.starttls()
         server.ehlo()
-        server.login(user, pw)
-        server.sendmail(me, self.you, m.as_string())
+        server.login(config.user, config.pw)
+        server.sendmail(config.me, self.you, m.as_string())
