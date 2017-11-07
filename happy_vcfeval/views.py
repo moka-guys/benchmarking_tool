@@ -7,12 +7,12 @@ import os
 import re
 import threading
 import time
-from precision_medicine import *
-
+#from precision_medicine import *
+import precision_medicine
 
 # Upload to nexus and run app
 def run_prec_med(email, vcf_filepath, bed_filepath):
-    upload = upload2Nexus()
+    upload = precision_medicine.upload2Nexus()
     upload.take_inputs(email, vcf_filepath, bed_filepath)
 
 
@@ -67,24 +67,24 @@ def upload(request):
         else:
             # If validation failed, reload the form which will display the error messages from failed validation
             return render(request, 'happy_vcfeval/upload.html', {'form': form,
-                                                                 'tool_version': config.tool_version,
+                                                                 'tool_version': precision_medicine.config.tool_version,
                                                                  'known_issues': known_issues,
                                                                  'new_features': new_features,
-                                                                 'happy_version': config.happy_version,
+                                                                 'happy_version': precision_medicine.config.happy_version,
                                                                  'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
                                                                  'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
     # If data hasn't been submitted, just display the webpage
     else:
         form = upload_form()
         return render(request, 'happy_vcfeval/upload.html', {'form': form,
-                                                             'tool_version': config.tool_version,
+                                                             'tool_version': precision_medicine.config.tool_version,
                                                              'known_issues': known_issues,
                                                              'new_features': new_features,
-                                                             'happy_version': config.happy_version,
+                                                             'happy_version': precision_medicine.config.happy_version,
                                                              'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
                                                              'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
 
 
 # page displayed to inform user file is being processed
 def processing(request):
-    return render(request, 'happy_vcfeval/processing.html', {'tool_version': config.tool_version})
+    return render(request, 'happy_vcfeval/processing.html', {'tool_version': precision_medicine.config.tool_version})
