@@ -8,11 +8,14 @@ import time
 
 from django.conf import settings
 from email.Message import Message
-import precision_medicine_config as config
+import precision_medicine_config as config # Config file containing variables
 
 
 class upload2Nexus(object):
-    ''' Submits jobs to dnanexus_happy app from web interface, and returns results via email '''
+    """
+    Submits jobs to dnanexus_happy app from web interface, and returns results via email.
+    Takes an email address, vcf file and optional bed file as inputs (via take_inputs() method)
+    """
 
     def __init__(self):
         #  variables that are set from  inputs
@@ -64,7 +67,7 @@ class upload2Nexus(object):
         self.generic_error_email = config.user_error_message
 
     def take_inputs(self, email, vcf_file, bed_file):
-        '''Capture the input arguments'''
+        """Captures the input arguments (email, vcf_file, bed_file)"""
 
         # assign inputs to self variables
         self.email = email
@@ -76,12 +79,14 @@ class upload2Nexus(object):
         self.vcf_basename_orig = self.vcf_basename
         self.directory = os.path.dirname(self.vcf_filepath)
 
+        # if a bed file has been supplied...
         if bed_file:
             self.bed_filepath = bed_file
-            # build path and filename
+            # build path and filename. os.path.basename() extracts the filename from a path.
             self.bed_basename = os.path.basename(self.bed_filepath)
 
-            # capture timestamp
+        # Capture timestamp.
+        # The files are located in a timestamped directory, so extract the directory name from full path.
         self.timestamp = self.directory.split("/")[-1]
 
         # add vcf and timestamp to the generic error email message
@@ -97,6 +102,10 @@ class upload2Nexus(object):
         self.vcf_strip()
 
     def vcf_strip(self):
+        """
+        Removes the header from vcf and replaces with a stock header and removes unnecessary fields.
+        This is to avoid errors when processing
+        """
         # write to logfile
         self.logfile = open(self.logfile_name, 'w')
         self.logfile.write("email=" + self.email + "\noutput=" + self.timestamp + "\nvcf_filepath=" + self.vcf_filepath
@@ -122,7 +131,9 @@ class upload2Nexus(object):
             # open vcf header as t and the query vcf with the required settings as q and output file as binary output o
             with open(vcf_header, 'r') as t, open_func(query_vcf, open_mode) as q, gzip.open(output_vcf, 'wb') as o:
                 # for each line in q if it's not a header take the first 6 columns of each row, then add two full stops
-                # (replacing the filter and info ), then just include the GT field of format and sample columns.
+                # (replacing the filter and info ). Then remove everything except the GT field of format and sample
+                # fields. These fields are delimited by colon (:) so split on colon, then use .index() list method to
+                # get index of GT field so it can be retained.
                 output = "\n".join(["\t".join(line.rstrip().split('\t')[:6]
                                               + ['.'] * 2
                                               + [line.rstrip().split('\t')[8].split(":")[
@@ -146,7 +157,7 @@ class upload2Nexus(object):
             self.email_priority = 1  # high priority
             self.email_message = ("An error was encountered whilst reading VCF:\n" + self.vcf_basename_orig
                                   + "\n\nPlease ensure that the VCF (.vcf) or gzipped VCF (.vcf.gz) file supplied "
-                                    "conforms the VCF specification, is sorted, and includes genotype information "
+                                    "conforms to the VCF specification, is sorted, and includes genotype information "
                                     "(using GT tag) in the FORMAT and SAMPLE fields.\n\nIf you continue to experience "
                                     "issues please reply to this email quoting the below code:\n\n" + self.timestamp)
             self.you = [self.email]
@@ -157,7 +168,7 @@ class upload2Nexus(object):
             self.logfile.write("Error whilst stripping VCF file:" + str(e) + "\nEXITING")
             self.logfile.close()
 
-            # exit
+            # exit the script because an error was encountered.
             sys.exit()
 
         # set the new files asvariables used to upload to nexus etc.
@@ -168,6 +179,7 @@ class upload2Nexus(object):
         self.upload_to_Nexus()
 
     def upload_to_Nexus(self):
+        """Uploads vcf/bed files to Nexus"""
         # write to logfile
         self.logfile = open(self.logfile_name, 'a')
         self.logfile.write("uploading to nexus\n")
@@ -179,8 +191,10 @@ class upload2Nexus(object):
         # open bash script
         upload_bash_script = open(upload_bash_script_name, 'w')
 
-        # upload command 
+        # upload command
         # eg path/to/ua  --auth-token abc  --project  projectname --folder /nexus/path --do-not-compress /file/to/upload
+        # .format() method used to enclose vcf and bed filepaths in quotes incase there's any characters in filenames
+        # that could break the command (although all special characters should have been removed in an earlier step)
         upload_cmd = (self.upload_agent + self.auth + self.nexusprojectstring + config.data_project_id.replace(":", "")
                       + self.dest + self.nexus_folder + self.end_of_upload + "'{}'".format(self.vcf_filepath))
         if self.bed_filepath:
@@ -214,6 +228,7 @@ class upload2Nexus(object):
         self.logfile.close()
 
     def run_app(self):
+        """Runs DNANexus hap.py workflow"""
         # write to logfile
         self.logfile = open(self.logfile_name, 'a')
         self.logfile.write("running app\n")
@@ -226,14 +241,16 @@ class upload2Nexus(object):
         # open script
         run_bash_script = open(run_bash_script_name, 'w')
 
+        # If a bedfile has been submitted, update the -ipanel_bed argument to use the users bed file rather than the
+        # default WES capture kit bedfile specified in the config file (config.app_panel_bed). Need to construct path to bedfile in DNANexus
+        # project
         if self.bed_filepath:
             self.app_panel_bed = " -ipanel_bed=" + "'{}'".format(
                 config.data_project_id + self.nexus_folder + "/" + self.bed_basename)
         else:
             self.app_panel_bed = config.app_panel_bed
-        # dx run  command
-        # eg dxrun_cmd=self.base_cmd+workflow_query_vcf + project+self.nexus_folder +"/"+ self.vcf_basename
-        # +workflow_output_name+self.output+self.nexusprojectstring+project_id+self.token+";echo $jobid"
+        # dx run command
+        # Construct the dx run command to submit hap.py job and capture returned job id.
         dxrun_cmd = (self.base_cmd + config.app_query_vcf + "'{}'".format(config.data_project_id + self.nexus_folder + "/"
                      + self.vcf_basename) + config.app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                      + config.app_truth_vcf + self.app_panel_bed + config.app_high_conf_bed + config.app_truth + self.dest
@@ -250,14 +267,14 @@ class upload2Nexus(object):
         # close bash script
         run_bash_script.close()
 
-        # run the command
+        # run the bash script containing dx run command
         proc = subprocess.Popen(["bash " + run_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
                                 shell=True)
 
         # capture the streams 
         (out, err) = proc.communicate()
         if err:
-            # send a error email
+            # send an error email to mokaguys
             self.email_subject = "Benchmarking Tool: stderr reported when running job "
             self.email_priority = 1  # high priority
             self.email_message = ("vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput="
@@ -265,6 +282,7 @@ class upload2Nexus(object):
             self.send_an_email()
 
             # send a error email to user
+            # Change self.you to the user's email address rather than mokaguys
             self.you = [self.email]
             self.email_subject = config.user_error_subject
             self.email_message = self.generic_error_email
@@ -290,6 +308,7 @@ class upload2Nexus(object):
             self.logfile.close()
 
     def monitor_progress(self):
+        """Monitors the job and alerts if it has failed"""
         # write to logfile
         self.logfile = open(self.logfile_name, 'a')
         self.logfile.write("monitoring progress\n")
@@ -324,6 +343,7 @@ class upload2Nexus(object):
         # close bash script
         fail_status_bash_script.close()
 
+        # initialise count variable, used to count how long app has been running for
         count = 0
         # call check status module to execute the script. will only return true when job-id is found
         while not self.check_status(status_bash_script_name):
@@ -351,7 +371,7 @@ class upload2Nexus(object):
             else:
                 # if has been running for 45 mins stop or the job has failed
                 # access the error message from the app:
-                # command which returns a job-id within the project if successfully completed
+                # command which returns stderr from job
                 error_cmd = "dx watch " + self.analysis_id.rstrip() + "  --no-timestamps --get-stderr -q | tail -n 50"
 
                 # create bash script name
@@ -412,6 +432,7 @@ class upload2Nexus(object):
             self.logfile.close()
 
     def check_status(self, status_bash_script_name):
+        """Used by monitor_progress() method to check status of job"""
         # execute the status script
         proc = subprocess.Popen(["bash " + status_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
                                 shell=True)
@@ -426,7 +447,7 @@ class upload2Nexus(object):
             return False
 
     def download_result(self):
-
+        """Downloads hap.py results and sends results email"""
         self.logfile = open(self.logfile_name, 'a')
         self.logfile.write("Job done, downloading\n")
         self.logfile.close()
@@ -482,6 +503,7 @@ class upload2Nexus(object):
             self.you.append(self.email)
 
             # open the extended summary file to get recall and precision
+            # This file is contained in the tar.gz bundle so need to use tarfile to open tar.gz and extract the file
             summary_csv = (tarfile.open(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
                            + ".tar.gz")).extractfile("happy." + self.vcf_basename_orig.split(".vcf")[0]
                            + '.extended.csv'))
@@ -539,7 +561,7 @@ class upload2Nexus(object):
             os.remove(download_bash_script_name)
 
     def send_an_email(self):
-        '''function to send an email. uses self.email_subject, self.email_message and self.email_priority'''
+        """function to send an email. uses self.email_subject, self.email_message and self.email_priority"""
         # create message object
         m = Message()
         # set priority

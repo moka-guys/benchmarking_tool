@@ -12,7 +12,9 @@ import precision_medicine
 
 # Upload to nexus and run app
 def run_prec_med(email, vcf_filepath, bed_filepath):
+    # Create upload2Nexus() object
     upload = precision_medicine.upload2Nexus()
+    # Pass inputs to object, which will trigger the workflow that runs the DNAnexus app and reports results
     upload.take_inputs(email, vcf_filepath, bed_filepath)
 
 
@@ -52,20 +54,23 @@ def upload(request):
                 bed_filename = re.sub('[^0-9a-zA-Z.\-/]+', '_', bed_filename_orig)
                 bed_filepath = settings.MEDIA_ROOT + timestamp + "/" + bed_filename
                 os.rename(bed_filepath_orig, bed_filepath)
-                # Run dna_nexus in background thread. Calls run_prec_med() function.
+                # Run dna_nexus in background thread. Calls run_prec_med() function and passes email address and filepaths
                 t = threading.Thread(target=run_prec_med, kwargs={'email': email, 'vcf_filepath': vcf_filepath,
                                                                   'bed_filepath': bed_filepath})
             # if user did not supply bedfile...
             else:
-                # Run dna_nexus in background thread. Calls run_prec_med(), passing empty string as bed_filepath
+                # Run dna_nexus in background thread. Calls run_prec_med() and passes email address and filepaths.
+                # Passes empty string as bed_filepath
                 t = threading.Thread(target=run_prec_med, kwargs={'email': email, 'vcf_filepath': vcf_filepath,
                                                                   'bed_filepath': ""})
             t.setDaemon(True)  # Run in background
             t.start()  # Start the thread, which calls run_prec_med() function
             # Redirect to the 'processing' success page.
+            # reverse function contructs the URL without having to hardcode it for portablility (see urls.py)
             return redirect(reverse('happy_vcfeval:processing'))
         else:
             # If validation failed, reload the form which will display the error messages from failed validation
+            # Error messages are passed as part of the form object
             return render(request, 'happy_vcfeval/upload.html', {'form': form,
                                                                  'tool_version': precision_medicine.config.tool_version,
                                                                  'known_issues': known_issues,
