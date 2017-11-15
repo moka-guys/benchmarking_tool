@@ -357,8 +357,6 @@ class upload2Nexus(object):
 
                 # wait for 1 mins
                 time.sleep(60)
-                # call the check status function again
-                self.check_status(status_bash_script_name)
 
                 # check if it's failed
                 if self.check_status(fail_status_bash_script_name):
