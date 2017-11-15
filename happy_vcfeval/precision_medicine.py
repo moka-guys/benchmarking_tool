@@ -113,15 +113,11 @@ class upload2Nexus(object):
         # record in log file steps taken
         self.logfile.write("removing unnecessary fields from VCF\n")
         self.logfile.close()
-        # set query vcf
-        query_vcf = self.vcf_filepath
-        # set vcf header
-        vcf_header = self.vcf_header
         # create new file name for modified vcf
         output_vcf = self.vcf_filepath + '_stripped.vcf.gz'
 
         # check if zipped or not to define settings used to read the file
-        if query_vcf.endswith('.gz'):
+        if self.vcf_filepath.endswith('.gz'):
             open_func = gzip.open
             open_mode = 'rb'
         else:
@@ -129,7 +125,7 @@ class upload2Nexus(object):
             open_mode = 'r'
         try:
             # open vcf header as t and the query vcf with the required settings as q and output file as binary output o
-            with open(vcf_header, 'r') as t, open_func(query_vcf, open_mode) as q, gzip.open(output_vcf, 'wb') as o:
+            with open(self.vcf_header, 'r') as t, open_func(self.vcf_filepath, open_mode) as q, gzip.open(output_vcf, 'wb') as o:
                 # for each line in q if it's not a header take the first 6 columns of each row, then add two full stops
                 # (replacing the filter and info ). Then remove everything except the GT field of format and sample
                 # fields. These fields are delimited by colon (:) so split on colon, then use .index() list method to
