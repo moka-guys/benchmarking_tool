@@ -206,7 +206,7 @@ class upload2Nexus(object):
         upload_bash_script.close()
 
         # run the command
-        proc = subprocess.Popen(["bash " + upload_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE
+        proc = subprocess.Popen(["bash " + upload_bash_script_name], stderr=subprocess.STDOUT, stdout=subprocess.PIPE
                                 , shell=True)
 
         # capture the streams (err is redirected to out above)
