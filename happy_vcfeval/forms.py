@@ -12,9 +12,10 @@ class upload_form(forms.Form):
         cleaned_data = super(upload_form, self).clean()
         uploaded_vcf = cleaned_data.get("vcf_file")
         uploaded_bed = cleaned_data.get("bed_file")
-        # Check uploaded vcf size does not exceed 200MB
+        # ValidationError messages are displayed below the input box they refer to.
+        # Check uploaded vcf size does not exceed 200MB to prevent large uploads filling up the server
         if uploaded_vcf._size > 200000000:
-            raise forms.ValidationError({'vcf_file': "File size cannot be greater than 200MB"})
+            raise forms.ValidationError({'vcf_file': "VCF file size cannot be greater than 200MB"})
         # Check uploaded file has .vcf or .vcf.gz extension
         if not uploaded_vcf.name.endswith(".vcf.gz") and not uploaded_vcf.name.endswith(".vcf"):
             raise forms.ValidationError({'vcf_file': "File must be VCF (.vcf) or gzipped VCF ('.vcf.gz')"})
@@ -22,7 +23,7 @@ class upload_form(forms.Form):
         if uploaded_bed:
             # Check uploaded bed size does not exceed 200MB
             if uploaded_bed._size > 200000000:
-                raise forms.ValidationError({'bed_file': "File size cannot be greater than 200MB"})
+                raise forms.ValidationError({'bed_file': "BED file size cannot be greater than 200MB"})
             # Check uploaded file has .bed extension
             if not uploaded_bed.name.endswith(".bed"):
                 raise forms.ValidationError({'bed_file': "File must be BED file with '.bed' extension"})
