@@ -7,53 +7,89 @@ import os
 import re
 import threading
 import time
-from precision_medicine import *
+#from precision_medicine import *
+import precision_medicine
 
-# upload to nexus and run app
+# Upload to nexus and run app
 def run_prec_med(email, vcf_filepath, bed_filepath):
-    upload=upload2Nexus()
+    # Create upload2Nexus() object
+    upload = precision_medicine.upload2Nexus()
+    # Pass inputs to object, which will trigger the workflow that runs the DNAnexus app and reports results
     upload.take_inputs(email, vcf_filepath, bed_filepath)
 
-# main upload page
+
+# Main upload page
 def upload(request):
+    # Create list of any issues in known_issues.txt so that they can be displayed on page
     with open(settings.BASE_DIR + '/known_issues.txt', 'r') as f:
         known_issues = [x for x in f if not x.startswith("#")]
+    # Create list of any new features in new_features.txt so that they can be displayed on page
+    with open(settings.BASE_DIR + '/new_features.txt', 'r') as f:
+        new_features = [x for x in f if not x.startswith("#")]
+    # If data has been submitted...
     if request.method == 'POST':
-        form = upload_form(request.POST, request.FILES) #Pass posted data to form object for validation
-        if form.is_valid(): # if submitted data passes validation
-            illegal_chars = r'[ \\/*?:\"<>|]' # whitespace and characters to be removed from filename
+        # Pass posted data to form upload_form object for validation
+        form = upload_form(request.POST, request.FILES)
+        if form.is_valid():  # if submitted data passes validation
+            # Capture the posted data
             email = request.POST["email"]
             vcf_file = request.FILES["vcf_file"]
+            # Create timestamp
             timestamp = time.strftime("%y%m%d_%H%M%S")
-            # Save the uploaded file(s), and remove any illegal characters or whitespace from filename
+            # Save the uploaded vcf file with original filename
             fs = FileSystemStorage(settings.MEDIA_ROOT + timestamp, settings.MEDIA_URL + timestamp)
             vcf_filename_orig = fs.save(vcf_file.name, vcf_file)
-            vcf_filepath_orig = settings.MEDIA_ROOT + timestamp + "/" + vcf_filename_orig           
-            vcf_filename = re.sub(illegal_chars, '', vcf_filename_orig)
+            vcf_filepath_orig = settings.MEDIA_ROOT + timestamp + "/" + vcf_filename_orig
+            # Replace any whitespace/special characters in filename with underscores
+            vcf_filename = re.sub('[^0-9a-zA-Z.\-/]+', '_', vcf_filename_orig)
             vcf_filepath = settings.MEDIA_ROOT + timestamp + "/" + vcf_filename
             os.rename(vcf_filepath_orig, vcf_filepath)
-            # if user supplied bed file...           
+            # If user supplied bed file...
             if "bed_file" in request.FILES:
+                # Save the uploaded bed file with original file name
                 bed_file = request.FILES["bed_file"]
                 bed_filename_orig = fs.save(bed_file.name, bed_file)
                 bed_filepath_orig = settings.MEDIA_ROOT + timestamp + "/" + bed_filename_orig
-                bed_filename = re.sub(illegal_chars, '', bed_filename_orig)
+                # Replace any whitespace/special characters in filename with underscores
+                bed_filename = re.sub('[^0-9a-zA-Z.\-/]+', '_', bed_filename_orig)
                 bed_filepath = settings.MEDIA_ROOT + timestamp + "/" + bed_filename
                 os.rename(bed_filepath_orig, bed_filepath)
-                # run dna_nexus in background thread
-                t = threading.Thread(target=run_prec_med, kwargs={'email': email, 'vcf_filepath': vcf_filepath, 'bed_filepath': bed_filepath})
-            else: # no user supplied bedfile...
-                t = threading.Thread(target=run_prec_med, kwargs={'email': email, 'vcf_filepath': vcf_filepath, 'bed_filepath': ""})
-            t.setDaemon(True)
-            t.start()
+                # Run dna_nexus in background thread. Calls run_prec_med() function and passes email address and filepaths
+                t = threading.Thread(target=run_prec_med, kwargs={'email': email, 'vcf_filepath': vcf_filepath,
+                                                                  'bed_filepath': bed_filepath})
+            # if user did not supply bedfile...
+            else:
+                # Run dna_nexus in background thread. Calls run_prec_med() and passes email address and filepaths.
+                # Passes empty string as bed_filepath
+                t = threading.Thread(target=run_prec_med, kwargs={'email': email, 'vcf_filepath': vcf_filepath,
+                                                                  'bed_filepath': ""})
+            t.setDaemon(True)  # Run in background
+            t.start()  # Start the thread, which calls run_prec_med() function
+            # Redirect to the 'processing' success page.
+            # reverse function contructs the URL without having to hardcode it for portablility (see urls.py)
             return redirect(reverse('happy_vcfeval:processing'))
         else:
             # If validation failed, reload the form which will display the error messages from failed validation
-            return render(request, 'happy_vcfeval/upload.html', {'form': form, 'known_issues': known_issues, 'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip"})
+            # Error messages are passed as part of the form object
+            return render(request, 'happy_vcfeval/upload.html', {'form': form,
+                                                                 'tool_version': precision_medicine.config.tool_version,
+                                                                 'known_issues': known_issues,
+                                                                 'new_features': new_features,
+                                                                 'happy_version': precision_medicine.config.happy_version,
+                                                                 'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
+                                                                 'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
+    # If data hasn't been submitted, just display the webpage
     else:
-    	form = upload_form()
-    	return render(request, 'happy_vcfeval/upload.html', {'form': form, 'known_issues': known_issues, 'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip"})
+        form = upload_form()
+        return render(request, 'happy_vcfeval/upload.html', {'form': form,
+                                                             'tool_version': precision_medicine.config.tool_version,
+                                                             'known_issues': known_issues,
+                                                             'new_features': new_features,
+                                                             'happy_version': precision_medicine.config.happy_version,
+                                                             'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
+                                                             'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
+
 
 # page displayed to inform user file is being processed
 def processing(request):
-	return render(request, 'happy_vcfeval/processing.html')
+    return render(request, 'happy_vcfeval/processing.html', {'tool_version': precision_medicine.config.tool_version})

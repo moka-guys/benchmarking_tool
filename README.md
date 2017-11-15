@@ -1,4 +1,4 @@
-# Benchmarking Tool Interface v1.0
+# Benchmarking Tool Interface v1.1
 
 ## What does this app do?
 This project contains the code for the Django web interface (https://stickie.be/nch/) for the precision medicine hap.py DNAnexus app (https://github.com/moka-guys/dnanexus_happy)
@@ -15,6 +15,7 @@ This project contains the code for the Django web interface (https://stickie.be/
   * happy_vcfeval/precision_medicine_config.py
   * media/ (folder and contents)
   * known_issues.txt
+  * new_features.txt
   * db.sqlite3
 * Give the `www-data` user (i.e. Apache) write access to the media folder and subfolders:
   * `sudo chgrp -R www-data ~/apps/mokaguys_project/media/` Adds www-data to group
