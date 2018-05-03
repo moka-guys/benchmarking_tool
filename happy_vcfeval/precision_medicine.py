@@ -14,7 +14,8 @@ import precision_medicine_config as config # Config file containing variables
 class upload2Nexus(object):
     """
     Submits jobs to dnanexus_happy app from web interface, and returns results via email.
-    Takes an email address, vcf file and optional bed file as inputs (via take_inputs() method)
+    Takes an email address, vcf filepath and optional bed filepath as inputs (via take_inputs() method)
+    (The filepaths are the full filepaths to the uploaded files on the server)
     """
 
     def __init__(self):
@@ -86,7 +87,10 @@ class upload2Nexus(object):
             self.bed_basename = os.path.basename(self.bed_filepath)
 
         # Capture timestamp.
-        # The files are located in a timestamped directory, so extract the directory name from full path.
+        # When the files are uploaded a timestamp is generated, and the files are uploaded to a folder called .../<timestamp>
+        # self.directory is the full directory path for the uploaded files
+        # e.g. /home/mokagals/mokaguys_project/media/171115_171920
+        # Timestamp is extracted by splitting on '/' and capturing the last element
         self.timestamp = self.directory.split("/")[-1]
 
         # add vcf and timestamp to the generic error email message
