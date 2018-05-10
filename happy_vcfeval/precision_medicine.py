@@ -549,7 +549,10 @@ class upload2Nexus(object):
                                   + str(round(indel_precision, 5)) + " (95% CI: "
                                   + str(round(indel_precision_lowerCI, 5)) + " - "
                                   + str(round(indel_precision_upperCI, 5))
-                                  + ")\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
+                                  + ")\n\nA summary report is available here:\n" + config.url
+                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
+                                  + self.vcf_basename_orig.split(".vcf")[0] + ".summary_report.html")
+                                  + "\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
                                   + config.happy_version + " (https://github.com/Illumina/hap.py)")
             self.send_an_email()
             self.logfile = open(self.logfile_name, 'a')
