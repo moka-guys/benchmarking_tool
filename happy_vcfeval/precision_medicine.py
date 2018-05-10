@@ -3,7 +3,7 @@ import os
 import smtplib
 import subprocess
 import sys
-import tarfile
+import zipfile
 import time
 
 from django.conf import settings
@@ -501,10 +501,10 @@ class upload2Nexus(object):
             self.you.append(self.email)
 
             # open the extended summary file to get recall and precision
-            # This file is contained in the tar.gz bundle so need to use tarfile to open tar.gz and extract the file
-            summary_csv = (tarfile.open(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
-                           + ".tar.gz")).extractfile("happy." + self.vcf_basename_orig.split(".vcf")[0]
-                           + '.extended.csv'))
+            # This file is contained in the zip archive
+            summary_csv = (zipfile.ZipFile(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
+                           + ".zip"), 'r').open("happy." + self.vcf_basename_orig.split(".vcf")[0]
+                           + '.extended.csv', 'r'))
             # loop through loking for indel result
             for line in summary_csv:
                 if line.startswith("SNP,*,*,PASS"):
@@ -537,7 +537,7 @@ class upload2Nexus(object):
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
                                   + "\n\nPlease download your files from:\n" + config.url
                                   + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
-                                  + self.vcf_basename_orig.split(".vcf")[0] + ".tar.gz") + "\n\nSummary (taken from "
+                                  + self.vcf_basename_orig.split(".vcf")[0] + ".zip") + "\n\nSummary (taken from "
                                   + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                                   + ".extended.csv):\n\nSNP recall (sensitivity)= " + str(round(snp_recall, 5))
                                   + " (95% CI: " + str(round(snp_recall_lowerCI, 5)) + " - "
