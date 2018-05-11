@@ -535,6 +535,7 @@ class upload2Nexus(object):
             self.email_priority = 3
 
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
+                                  + "\nbed (if supplied):\n" + self.bed_basename
                                   + "\n\nPlease download your files from:\n" + config.url
                                   + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
                                   + self.vcf_basename_orig.split(".vcf")[0] + ".zip") + "\n\nSummary (taken from "
