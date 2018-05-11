@@ -554,7 +554,8 @@ class upload2Nexus(object):
                                   + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
                                   + self.vcf_basename_orig.split(".vcf")[0] + ".summary_report.html")
                                   + "\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
-                                  + config.happy_version + " (https://github.com/Illumina/hap.py)")
+                                  + config.happy_version + " (https://github.com/Illumina/hap.py) implemented in "
+                                  + "Viapath Genome Informatics DNAnexus app: " + os.path.basename(config.app_path))
             self.send_an_email()
             self.logfile = open(self.logfile_name, 'a')
             self.logfile.write("finished download.\ndeleting download script\n")
