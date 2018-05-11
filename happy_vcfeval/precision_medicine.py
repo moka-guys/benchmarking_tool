@@ -536,9 +536,7 @@ class upload2Nexus(object):
 
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
                                   + "\nbed (if supplied):\n" + self.bed_basename
-                                  + "\n\nPlease download your files from:\n" + config.url
-                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
-                                  + self.vcf_basename_orig.split(".vcf")[0] + ".zip") + "\n\nSummary (taken from "
+                                  + "\n\nSummary (taken from "
                                   + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                                   + ".extended.csv):\n\nSNP recall (sensitivity)= " + str(round(snp_recall, 5))
                                   + " (95% CI: " + str(round(snp_recall_lowerCI, 5)) + " - "
@@ -550,9 +548,12 @@ class upload2Nexus(object):
                                   + str(round(indel_precision, 5)) + " (95% CI: "
                                   + str(round(indel_precision_lowerCI, 5)) + " - "
                                   + str(round(indel_precision_upperCI, 5))
-                                  + ")\n\nA summary report is available here:\n" + config.url
+                                  + ")\n\nA detailed summary report is available here:\n" + config.url
                                   + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
                                   + self.vcf_basename_orig.split(".vcf")[0] + ".summary_report.html")
+                                  + "\n\nFull results are available here:\n" + config.url
+                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
+                                  + self.vcf_basename_orig.split(".vcf")[0] + ".zip")
                                   + "\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
                                   + config.happy_version + " (https://github.com/Illumina/hap.py) implemented in "
                                   + "Viapath Genome Informatics DNAnexus app: " + os.path.basename(config.app_path))
