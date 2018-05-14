@@ -500,8 +500,8 @@ class upload2Nexus(object):
             # add the user email to the email message
             self.you.append(self.email)
 
-            # open the extended summary file to get recall and precision
-            # This file is contained in the zip archive
+            # Need to parse the extended summary file to get recall and precision with confidence intervals (the normal summary file doesn't have confidence intervals)
+            # This file is contained in the zip archive, so need to use zipfile module to read the file contents 
             summary_csv = (zipfile.ZipFile(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
                            + ".zip"), 'r').open("happy." + self.vcf_basename_orig.split(".vcf")[0]
                            + '.extended.csv', 'r'))
@@ -533,7 +533,13 @@ class upload2Nexus(object):
             # send email
             self.email_subject = "Benchmarking Tool: Job Finished"
             self.email_priority = 3
-
+            # Create the email body
+            # This includes:
+            # Supplied VCF and BED names to identify the results
+            # The recall, precision and confidence intervals from the extended summary file (see above)
+            # A link to view the detailed summary html report
+            # A link to download the full output .zip archive
+            # Version numbers of hap.py and the DNAnexus app that were used to produce the results
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
                                   + "\nbed (if supplied):\n" + self.bed_basename
                                   + "\n\nSummary (taken from "
