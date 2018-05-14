@@ -3,7 +3,7 @@ import os
 import smtplib
 import subprocess
 import sys
-import tarfile
+import zipfile
 import time
 
 from django.conf import settings
@@ -500,11 +500,11 @@ class upload2Nexus(object):
             # add the user email to the email message
             self.you.append(self.email)
 
-            # open the extended summary file to get recall and precision
-            # This file is contained in the tar.gz bundle so need to use tarfile to open tar.gz and extract the file
-            summary_csv = (tarfile.open(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
-                           + ".tar.gz")).extractfile("happy." + self.vcf_basename_orig.split(".vcf")[0]
-                           + '.extended.csv'))
+            # Need to parse the extended summary file to get recall and precision with confidence intervals (the normal summary file doesn't have confidence intervals)
+            # This file is contained in the zip archive, so need to use zipfile module to read the file contents 
+            summary_csv = (zipfile.ZipFile(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
+                           + ".zip"), 'r').open("happy." + self.vcf_basename_orig.split(".vcf")[0]
+                           + '.extended.csv', 'r'))
             # loop through loking for indel result
             for line in summary_csv:
                 if line.startswith("SNP,*,*,PASS"):
@@ -533,11 +533,16 @@ class upload2Nexus(object):
             # send email
             self.email_subject = "Benchmarking Tool: Job Finished"
             self.email_priority = 3
-
+            # Create the email body
+            # This includes:
+            # Supplied VCF and BED names to identify the results
+            # The recall, precision and confidence intervals from the extended summary file (see above)
+            # A link to view the detailed summary html report
+            # A link to download the full output .zip archive
+            # Version numbers of hap.py and the DNAnexus app that were used to produce the results
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
-                                  + "\n\nPlease download your files from:\n" + config.url
-                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
-                                  + self.vcf_basename_orig.split(".vcf")[0] + ".tar.gz") + "\n\nSummary (taken from "
+                                  + "\nbed (if supplied):\n" + self.bed_basename
+                                  + "\n\nSummary (taken from "
                                   + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                                   + ".extended.csv):\n\nSNP recall (sensitivity)= " + str(round(snp_recall, 5))
                                   + " (95% CI: " + str(round(snp_recall_lowerCI, 5)) + " - "
@@ -549,8 +554,15 @@ class upload2Nexus(object):
                                   + str(round(indel_precision, 5)) + " (95% CI: "
                                   + str(round(indel_precision_lowerCI, 5)) + " - "
                                   + str(round(indel_precision_upperCI, 5))
-                                  + ")\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
-                                  + config.happy_version + " (https://github.com/Illumina/hap.py)")
+                                  + ")\n\nA detailed summary report is available here:\n" + config.url
+                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
+                                  + self.vcf_basename_orig.split(".vcf")[0] + ".summary_report.html")
+                                  + "\n\nFull results are available here:\n" + config.url
+                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
+                                  + self.vcf_basename_orig.split(".vcf")[0] + ".zip")
+                                  + "\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
+                                  + config.happy_version + " (https://github.com/Illumina/hap.py) implemented in "
+                                  + "Viapath Genome Informatics DNAnexus app: " + os.path.basename(config.app_path))
             self.send_an_email()
             self.logfile = open(self.logfile_name, 'a')
             self.logfile.write("finished download.\ndeleting download script\n")
