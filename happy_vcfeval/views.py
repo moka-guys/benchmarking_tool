@@ -77,7 +77,7 @@ def upload(request):
                                                                  'new_features': new_features,
                                                                  'happy_version': precision_medicine.config.happy_version,
                                                                  'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
-                                                                 'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
+                                                                 'our_results': settings.MEDIA_URL + "180511_150443/happy.WES3_Test2_48_136819_PN_WES_3_S2_R1_001.zip"})
     # If data hasn't been submitted, just display the webpage
     else:
         form = upload_form()
@@ -87,7 +87,7 @@ def upload(request):
                                                              'new_features': new_features,
                                                              'happy_version': precision_medicine.config.happy_version,
                                                              'na12878_fastq': settings.MEDIA_URL + "FASTQ/NA12878_WES.zip",
-                                                             'our_results': settings.MEDIA_URL + "170624_184727/170624_184727.tar.gz"})
+                                                             'our_results': settings.MEDIA_URL + "180511_150443/happy.WES3_Test2_48_136819_PN_WES_3_S2_R1_001.zip"})
 
 
 # page displayed to inform user file is being processed
