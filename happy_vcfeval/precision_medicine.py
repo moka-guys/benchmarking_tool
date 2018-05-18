@@ -505,9 +505,14 @@ class upload2Nexus(object):
             summary_csv = (zipfile.ZipFile(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
                            + ".zip"), 'r').open("happy." + self.vcf_basename_orig.split(".vcf")[0]
                            + '.extended.csv', 'r'))
-            # loop through loking for indel result
+            # loop through file and pull out results for SNPs and/or INDELs if present
+            # If there are e.g. no indels in results, there will be no indel lines in the summary CSV file, so use snps_found and indels_found flags to determine what 
+            # results need to be included in email 
+            snps_found = False
+            indels_found = False
             for line in summary_csv:
                 if line.startswith("SNP,*,*,PASS"):
+                    snps_found = True
                     # split the line on comma
                     splitline = line.split(",")
                     # capture required columns
@@ -518,6 +523,7 @@ class upload2Nexus(object):
                     snp_precision_lowerCI = float(splitline[67])
                     snp_precision_upperCI = float(splitline[68])
                 elif line.startswith("INDEL,*,*,PASS"):
+                    indels_found = True
                     # split the line on comma
                     splitline = line.split(",")
                     # capture required columns
@@ -534,27 +540,32 @@ class upload2Nexus(object):
             self.email_subject = "Benchmarking Tool: Job Finished"
             self.email_priority = 3
             # Create the email body
-            # This includes:
-            # Supplied VCF and BED names to identify the results
-            # The recall, precision and confidence intervals from the extended summary file (see above)
-            # A link to view the detailed summary html report
-            # A link to download the full output .zip archive
-            # Version numbers of hap.py and the DNAnexus app that were used to produce the results
+            # Include:
+            # Names of supplied VCF and BED files to identify the results
+            # Name of file from which summary is taken
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
                                   + "\nbed (if supplied):\n" + self.bed_basename
                                   + "\n\nSummary (taken from "
                                   + "happy." + self.vcf_basename_orig.split(".vcf")[0]
-                                  + ".extended.csv):\n\nSNP recall (sensitivity)= " + str(round(snp_recall, 5))
-                                  + " (95% CI: " + str(round(snp_recall_lowerCI, 5)) + " - "
-                                  + str(round(snp_recall_upperCI, 5)) + ")\nSNP precision (PPV) = "
-                                  + str(round(snp_precision, 5)) + " (95% CI: " + str(round(snp_precision_lowerCI, 5))
-                                  + " - " + str(round(snp_precision_upperCI, 5)) + ")\nINDEL recall (sensitivity)= "
-                                  + str(round(indel_recall, 5)) + " (95% CI: " + str(round(indel_recall_lowerCI, 5))
-                                  + " - " + str(round(indel_recall_upperCI, 5)) + ")\nINDEL precision (PPV) = "
-                                  + str(round(indel_precision, 5)) + " (95% CI: "
-                                  + str(round(indel_precision_lowerCI, 5)) + " - "
-                                  + str(round(indel_precision_upperCI, 5))
-                                  + ")\n\nA detailed summary report is available here:\n" + config.url
+                                  + ".extended.csv):\n")
+            # If SNP results are present in the extended summary file, include the recall, precision and confidence intervals in the email
+            if snps_found:
+                self.email_message += ("\nSNP recall (sensitivity)= " + str(round(snp_recall, 5))
+                                       + " (95% CI: " + str(round(snp_recall_lowerCI, 5)) + " - "
+                                       + str(round(snp_recall_upperCI, 5)) + ")\nSNP precision (PPV) = "
+                                       + str(round(snp_precision, 5)) + " (95% CI: " + str(round(snp_precision_lowerCI, 5))
+                                       + " - " + str(round(snp_precision_upperCI, 5)) + ")")
+            # If INDEL results are present in the extended summary file, include the recall, precision and confidence intervals in the email
+            if indels_found:
+                self.email_message += ("\nINDEL recall (sensitivity)= " + str(round(indel_recall, 5)) 
+                                       + " (95% CI: " + str(round(indel_recall_lowerCI, 5)) + " - "
+                                       + str(round(indel_recall_upperCI, 5)) + ")\nINDEL precision (PPV) = "
+                                       + str(round(indel_precision, 5)) + " (95% CI: " + str(round(indel_precision_lowerCI, 5)) 
+                                       + " - " + str(round(indel_precision_upperCI, 5)) + ")")
+            # A link to view the detailed summary html report
+            # A link to download the full output .zip archive
+            # Version numbers of hap.py and the DNAnexus app that were used to produce the results
+            self.email_message += ("\n\nA detailed summary report is available here:\n" + config.url
                                   + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
                                   + self.vcf_basename_orig.split(".vcf")[0] + ".summary_report.html")
                                   + "\n\nFull results are available here:\n" + config.url
