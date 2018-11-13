@@ -102,8 +102,11 @@ class upload2Nexus(object):
         # use  timestamp to create the logfile name
         self.logfile_name = os.path.join(self.directory, self.timestamp + "_logfile.txt")
 
+        ##### SKIP VCF STRIP FUNCTION, SEE https://github.com/moka-guys/benchmarking_tool/issues/36 #####
+        #self.vcf_strip()
+
         # call function to upload to nexus
-        self.vcf_strip()
+        self.upload_to_Nexus()
 
     def vcf_strip(self):
         """
