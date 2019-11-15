@@ -432,6 +432,13 @@ class upload2Nexus(object):
             self.logfile.write("deleting status scripts\n")
             self.logfile.close()
 
+    def format_result_5dp(self, result_string):
+        """If provided string can be converted to float, will round to 5dp and return as string. Otherwise will just return the string provided"""
+        try:
+            return str(round(float(result_string), 5))
+        except ValueError:
+            return result_string
+
     def check_status(self, status_bash_script_name):
         """Used by monitor_progress() method to check status of job"""
         # execute the status script
@@ -519,23 +526,23 @@ class upload2Nexus(object):
                     # split the line on comma
                     splitline = line.split(",")
                     # capture required columns
-                    snp_recall = float(splitline[7])
-                    snp_recall_lowerCI = float(splitline[65])
-                    snp_recall_upperCI = float(splitline[66])
-                    snp_precision = float(splitline[8])
-                    snp_precision_lowerCI = float(splitline[67])
-                    snp_precision_upperCI = float(splitline[68])
+                    snp_recall = self.format_result_5dp(splitline[7])
+                    snp_recall_lowerCI = self.format_result_5dp(splitline[65])
+                    snp_recall_upperCI = self.format_result_5dp(splitline[66])
+                    snp_precision = self.format_result_5dp(splitline[8])
+                    snp_precision_lowerCI = self.format_result_5dp(splitline[67])
+                    snp_precision_upperCI = self.format_result_5dp(splitline[68])
                 elif line.startswith("INDEL,*,*,PASS"):
                     indels_found = True
                     # split the line on comma
                     splitline = line.split(",")
                     # capture required columns
-                    indel_recall = float(splitline[7])
-                    indel_recall_lowerCI = float(splitline[65])
-                    indel_recall_upperCI = float(splitline[66])
-                    indel_precision = float(splitline[8])
-                    indel_precision_lowerCI = float(splitline[67])
-                    indel_precision_upperCI = float(splitline[68])
+                    indel_recall = self.format_result_5dp(splitline[7])
+                    indel_recall_lowerCI = self.format_result_5dp(splitline[65])
+                    indel_recall_upperCI = self.format_result_5dp(splitline[66])
+                    indel_precision = self.format_result_5dp(splitline[8])
+                    indel_precision_lowerCI = self.format_result_5dp(splitline[67])
+                    indel_precision_upperCI = self.format_result_5dp(splitline[68])
             # close file
             summary_csv.close()
 
@@ -553,18 +560,18 @@ class upload2Nexus(object):
                                   + ".extended.csv):\n")
             # If SNP results are present in the extended summary file, include the recall, precision and confidence intervals in the email
             if snps_found:
-                self.email_message += ("\nSNP recall (sensitivity)= " + str(round(snp_recall, 5))
-                                       + " (95% CI: " + str(round(snp_recall_lowerCI, 5)) + " - "
-                                       + str(round(snp_recall_upperCI, 5)) + ")\nSNP precision (PPV) = "
-                                       + str(round(snp_precision, 5)) + " (95% CI: " + str(round(snp_precision_lowerCI, 5))
-                                       + " - " + str(round(snp_precision_upperCI, 5)) + ")")
+                self.email_message += ("\nSNP recall (sensitivity)= " + snp_recall
+                                       + " (95% CI: " + snp_recall_lowerCI + " - "
+                                       + snp_recall_upperCI + ")\nSNP precision (PPV) = "
+                                       + snp_precision + " (95% CI: " + snp_precision_lowerCI
+                                       + " - " + snp_precision_upperCI + ")")
             # If INDEL results are present in the extended summary file, include the recall, precision and confidence intervals in the email
             if indels_found:
-                self.email_message += ("\nINDEL recall (sensitivity)= " + str(round(indel_recall, 5)) 
-                                       + " (95% CI: " + str(round(indel_recall_lowerCI, 5)) + " - "
-                                       + str(round(indel_recall_upperCI, 5)) + ")\nINDEL precision (PPV) = "
-                                       + str(round(indel_precision, 5)) + " (95% CI: " + str(round(indel_precision_lowerCI, 5)) 
-                                       + " - " + str(round(indel_precision_upperCI, 5)) + ")")
+                self.email_message += ("\nINDEL recall (sensitivity)= " + indel_recall 
+                                       + " (95% CI: " + indel_recall_lowerCI + " - "
+                                       + indel_recall_upperCI + ")\nINDEL precision (PPV) = "
+                                       + indel_precision + " (95% CI: " + indel_precision_lowerCI 
+                                       + " - " + indel_precision_upperCI + ")")
             # A link to view the detailed summary html report
             # A link to download the full output .zip archive
             # Version numbers of hap.py and the DNAnexus app that were used to produce the results
