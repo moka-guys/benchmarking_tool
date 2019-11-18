@@ -94,7 +94,7 @@ class upload2Nexus(object):
         self.timestamp = self.directory.split("/")[-1]
 
         # add vcf and timestamp to the generic error email message
-        self.generic_error_email = "vcf = " + self.vcf_basename_orig + "\n\n" + self.generic_error_email + self.timestamp
+        self.generic_error_email = "vcf = " + self.vcf_basename_orig + "\n\n" + self.generic_error_email + "timestamp = " + self.timestamp
 
         # update nexus folder so it is Tests/timestamp
         self.nexus_folder = self.nexus_folder + self.directory.split("/")[-1]
@@ -158,11 +158,7 @@ class upload2Nexus(object):
             # send an error email to user
             self.email_subject = "Benchmarking Tool: Invalid VCF file "
             self.email_priority = 1  # high priority
-            self.email_message = ("An error was encountered whilst reading VCF:\n" + self.vcf_basename_orig
-                                  + "\n\nPlease ensure that the VCF (.vcf) or gzipped VCF (.vcf.gz) file supplied "
-                                    "conforms to the VCF specification, is sorted, and includes genotype information "
-                                    "(using GT tag) in the FORMAT and SAMPLE fields.\n\nIf you continue to experience "
-                                    "issues please reply to this email quoting the below code:\n\n" + self.timestamp)
+            self.email_message = self.generic_error_email + "\n\nError message = \n" + str(e)
             self.you = [self.email]
             self.send_an_email()
 
@@ -288,7 +284,7 @@ class upload2Nexus(object):
             # Change self.you to the user's email address rather than mokaguys
             self.you = [self.email]
             self.email_subject = config.user_error_subject
-            self.email_message = self.generic_error_email
+            self.email_message = self.generic_error_email + "\n\nError message = \n" + err
             self.send_an_email()
 
             self.logfile = open(self.logfile_name, 'a')
@@ -378,7 +374,6 @@ class upload2Nexus(object):
                 # create bash script name
                 read_job_error_bash_script_name = (os.path.join(self.directory, self.timestamp
                                                                 + "_read_job_error.sh"))
-
                 # open script
                 read_job_error_bash_script = open(read_job_error_bash_script_name, 'w')
                 # write the source cmd
@@ -408,7 +403,7 @@ class upload2Nexus(object):
                 # send a error email to user
                 self.you = [self.email]
                 self.email_subject = config.user_error_subject
-                self.email_message = self.generic_error_email
+                self.email_message = self.generic_error_email + "\n\nlast 50 lines of STDERR from app:\n" + app_std_error
                 self.send_an_email()
 
                 self.logfile = open(self.logfile_name, 'a')
@@ -502,7 +497,7 @@ class upload2Nexus(object):
             # send a error email to user
             self.you = [self.email]
             self.email_subject = config.user_error_subject
-            self.email_message = self.generic_error_email
+            self.email_message = self.generic_error_email + "\n\nError message = \n" + err
             self.send_an_email()
             sys.exit()
 
