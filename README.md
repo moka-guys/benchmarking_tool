@@ -1,4 +1,4 @@
-# Benchmarking Tool Interface v1.4
+# Benchmarking Tool Interface v1.5
 
 ## What does this app do?
 This project contains the code for the Django web interface (https://genomics.viapath.co.uk/benchmark) for the precision medicine hap.py DNAnexus app (https://github.com/moka-guys/dnanexus_happy)
