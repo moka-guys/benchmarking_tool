@@ -27,6 +27,7 @@ class upload2Nexus(object):
         self.bed_filepath = ""
         self.bed_basename = ""
         self.app_panel_bed = ""
+        self.selected_genome_build  = ""
 
         self.vcf_header = os.path.dirname(os.path.realpath(__file__)) + "/vcf_header.vcf"
 
@@ -50,6 +51,7 @@ class upload2Nexus(object):
         self.auth = " --auth-token " + config.Nexus_API_Key  # authentication string
         self.nexusprojectstring = "  --project  "  # nexus project
         self.dest = " --folder "  # nexus folder
+        self.genome_build_cmd = "  --genome-build  "
         self.nexus_folder = "/Tests/"  # path to files in project
         self.end_of_upload = " --do-not-compress "  # don't compress upload
         self.base_cmd = "jobid=$(dx run " + config.app_project_id + config.app_path + " -y"  # start of dx run command
@@ -73,6 +75,7 @@ class upload2Nexus(object):
         # assign inputs to self variables
         self.email = email
         self.vcf_filepath = vcf_file
+        self.selected_genome_build = genome_build
         # build path and filename
         self.vcf_basename = os.path.basename(self.vcf_filepath)
         # The vcf_basename will get updated after the vcf has been stripped
@@ -253,7 +256,7 @@ class upload2Nexus(object):
         dxrun_cmd = (self.base_cmd + config.app_query_vcf + "'{}'".format(config.data_project_id + self.nexus_folder + "/"
                      + self.vcf_basename) + config.app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                      + config.app_truth_vcf + self.app_panel_bed + config.app_high_conf_bed + config.app_truth + self.dest
-                     + self.nexus_folder + self.token)
+                     + self.nexus_folder + self.genome_build_cmd + self.selected_genome_build + self.token)
 
         # write source cmd
         run_bash_script.write(self.source_command)
