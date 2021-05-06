@@ -2,11 +2,17 @@ from django import forms
 
 
 class upload_form(forms.Form):
+    GENOME_BUILD_CHOICES= [
+    ('GRCh37', 'GRCh37'),
+    ('GRCh38', 'GRCh38'),
+    ]
+    
     # Define fields
     email = forms.EmailField(label="Email Address")
     vcf_file = forms.FileField(label="Attach VCF (.vcf) or gzipped VCF (.vcf.gz)")
     bed_file = forms.FileField(label="Attach analysis region BED (.bed) (OPTIONAL)", required=False)
-
+    genome_build = forms.CharField(label='Select Genome Reference Build', widget=forms.Select(choices=GENOME_BUILD_CHOICES))
+    
     def clean(self):
         # Validate submitted data
         cleaned_data = super(upload_form, self).clean()
