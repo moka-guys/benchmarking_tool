@@ -83,6 +83,35 @@ class upload2Nexus(object):
         self.vcf_basename_orig = self.vcf_basename
         self.directory = os.path.dirname(self.vcf_filepath)
 
+        # Select correct files from the config file for the selected genome build
+        if self.selected_genome_build = "GRCh37":
+            self.app_truth_vcf = config.app_truth_vcf_37
+            self.app_panel_bed = config.app_panel_bed_37
+            self. app_high_conf_bed = config.app_high_conf_bed_37
+        elif self.selected_genome_build = "GRCh38":
+            self.app_truth_vcf = config.app_truth_vcf_38 
+            self.app_panel_bed = config.app_panel_bed_38
+            self.app_high_conf_bed = config. app_high_conf_bed_38
+        else:
+            # send an error email to mokaguys
+            self.email_subject = "Benchmarking Tool: Selected genome build not recognised "
+            self.email_priority = 1  # high priority
+            self.email_message = ("vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput="
+                                  + self.timestamp + "\nerror=" + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.selected_genome_build)  # state all inputs and error
+            self.send_an_email()
+
+            # send an error email to user
+            self.email_subject = "Benchmarking Tool: Selected genome build not recognised "
+            self.email_priority = 1  # high priority
+            self.email_message = self.generic_error_email + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.selected_genome_build + "\n"
+            self.you = [self.email]
+            self.send_an_email()
+
+            # write error to log file
+            self.logfile = open(self.logfile_name, 'a')
+            self.logfile.write("Benchmarking Tool: Selected genome build not recognised: " + self.selected_genome_build)
+            self.logfile.close()
+
         # if a bed file has been supplied...
         if bed_file:
             self.bed_filepath = bed_file
@@ -173,7 +202,7 @@ class upload2Nexus(object):
             # exit the script because an error was encountered.
             sys.exit()
 
-        # set the new files asvariables used to upload to nexus etc.
+        # set the new files as variables used to upload to nexus etc.
         self.vcf_filepath = output_vcf
         self.vcf_basename = os.path.basename(self.vcf_filepath)
 
@@ -255,7 +284,7 @@ class upload2Nexus(object):
         # Construct the dx run command to submit hap.py job and capture returned job id.
         dxrun_cmd = (self.base_cmd + config.app_query_vcf + "'{}'".format(config.data_project_id + self.nexus_folder + "/"
                      + self.vcf_basename) + config.app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0]
-                     + config.app_truth_vcf + self.app_panel_bed + config.app_high_conf_bed + config.app_truth + self.dest
+                     + self.app_truth_vcf + self.app_panel_bed + self.app_high_conf_bed + config.app_truth + self.dest
                      + self.nexus_folder + self.genome_build_cmd + self.selected_genome_build + self.token)
 
         # write source cmd
