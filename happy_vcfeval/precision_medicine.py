@@ -84,11 +84,11 @@ class upload2Nexus(object):
         self.directory = os.path.dirname(self.vcf_filepath)
 
         # Select correct files from the config file for the selected genome build
-        if self.selected_genome_build = "GRCh37":
+        if self.selected_genome_build == "GRCh37":
             self.app_truth_vcf = config.app_truth_vcf_37
             self.app_panel_bed = config.app_panel_bed_37
             self. app_high_conf_bed = config.app_high_conf_bed_37
-        elif self.selected_genome_build = "GRCh38":
+        elif self.selected_genome_build == "GRCh38":
             self.app_truth_vcf = config.app_truth_vcf_38 
             self.app_panel_bed = config.app_panel_bed_38
             self.app_high_conf_bed = config. app_high_conf_bed_38
