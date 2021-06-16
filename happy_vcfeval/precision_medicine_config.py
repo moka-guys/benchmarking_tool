@@ -12,17 +12,14 @@ url="https://genomics.viapath.co.uk"
 #Upload agent path
 upload_agent = "/opt/dnanexus-upload-agent-1.5.30-linux/ua"
 
-import environ
-env = environ.Env(
-    # set casting, default value
-    DEBUG=(bool, False)
-)
-# reading .env file
-environ.Env.read_env()
+import os
+# read in secret credentials from .env file
+from dotenv import load_dotenv
+load_dotenv(".env")  # take environment variables from .env.
 
 # SECURITY WARNING: To keep the Nexus_API_Key used in production secret
 # it is stored outside version control in .env
-Nexus_API_Key = env.str("Nexus_API_Key")
+Nexus_API_Key = os.environ.get("NEXUS_API_KEY")
 
 # The project containing the app
 app_project_id="project-ByfFPz00jy1fk6PjpZ95F27J:"
@@ -36,7 +33,7 @@ app_panel_bed_37= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-F25VXZj0y
 app_high_conf_bed_37= " -ihigh_conf_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-F45P6k80jy1jpv6J9G8gG3P0'"
 # Files for genome build 38
 app_truth_vcf_38=" -itruth_vcf='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGQ0xkZ2qxf92gGVQq4K'"     
-app_panel_bed_38= " -ipanel_bed=''"
+app_panel_bed_38= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2Gb8F00xkZ7kz646J88gZzK'"
 app_high_conf_bed_38= " -ihigh_conf_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGj0xkZ9V31YPj9xxg1J'"
 
 # App inputs
@@ -56,9 +53,8 @@ tool_version="v1.6"
 ################ Emails###############################
 # SECURITY WARNING: To keep the credentials used in production secret
 # user and password are stored outside version control in .env
-Nexus_API_Key = env.str("Nexus_API_Key")
-user = env.str("user")
-pw   = env.str("pw")
+user = os.environ.get("USER")
+pw   = os.environ.get("PW")
 host = 'email-smtp.eu-west-1.amazonaws.com'
 port = 587
 # The address that will be spoofed

@@ -9,15 +9,16 @@ This project contains the code for the Django web interface (https://genomics.vi
 * install pip: `sudo apt-get install python-pip`
 * Install Django (Python 2.7): `pip install Django`
 * Install django-widget-tweaks: `pip install django-widget-tweaks`
+* Install modules to keep credentials in environment variables: `pip install python-dotenv`
+* Install modules to keep credentials in environment variables: `pip install django-environ`
 * Install DNAnexus SDK and upload agent.
 * Clone this repository.
 * Some settings files containing sensitive information are stored outside of this repository. Copy the following files and folders from the `170921_Benchmarking_Backup/mokaguys_project/` folder on MokaNAS:
-  * mokaguys_project/settings.py
-  * happy_vcfeval/precision_medicine_config.py
   * media/ (folder and contents)
   * known_issues.txt
   * new_features.txt
   * db.sqlite3
+  * .env (file contains sensitive credentials outside version control)
 * Update the settings.py and precision_medicine_config.py files as appropriate
 * Make sure the `www-data` user (i.e. Apache) has write access to the media folder and subfolders. If necessary this can be added with:
   * `sudo chgrp -R www-data ./media/` Makes www-data group owner

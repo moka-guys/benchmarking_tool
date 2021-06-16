@@ -11,6 +11,7 @@ from email.Message import Message
 import precision_medicine_config as config # Config file containing variables
 
 
+
 class upload2Nexus(object):
     """
     Submits jobs to dnanexus_happy app from web interface, and returns results via email.
