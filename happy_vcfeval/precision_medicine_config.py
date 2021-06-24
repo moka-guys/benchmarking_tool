@@ -2,8 +2,8 @@
 DNA Nexus Upload agent configuration
 '''
 #set debug mode
-debug=True
-#debug=False
+#debug=True
+debug=False
 
 #IP address for the server
 url="https://genomics.viapath.co.uk"
