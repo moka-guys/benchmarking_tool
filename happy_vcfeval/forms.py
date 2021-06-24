@@ -1,11 +1,12 @@
 from django import forms
 
+GENOME_BUILD_CHOICES= [
+('GRCh37', 'GRCh37'),
+('GRCh38', 'GRCh38'),
+    ]
 
 class upload_form(forms.Form):
-    GENOME_BUILD_CHOICES= [
-    ('GRCh37', 'GRCh37'),
-    ('GRCh38', 'GRCh38'),
-    ]
+
     
     # Define fields
     email = forms.EmailField(label="Email Address")

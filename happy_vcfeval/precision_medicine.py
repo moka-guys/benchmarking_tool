@@ -28,7 +28,7 @@ class upload2Nexus(object):
         self.bed_filepath = ""
         self.bed_basename = ""
         self.app_panel_bed = ""
-        self.selected_genome_build  = ""
+        self.genome_build  = ""
 
         self.vcf_header = os.path.dirname(os.path.realpath(__file__)) + "/vcf_header.vcf"
 
@@ -52,7 +52,7 @@ class upload2Nexus(object):
         self.auth = " --auth-token " + config.Nexus_API_Key  # authentication string
         self.nexusprojectstring = "  --project  "  # nexus project
         self.dest = " --folder "  # nexus folder
-        self.genome_build_cmd = "  --genome-build  "
+        self.genome_build_cmd = " -igenome_reference='"
         self.nexus_folder = "/Tests/"  # path to files in project
         self.end_of_upload = " --do-not-compress "  # don't compress upload
         self.base_cmd = "jobid=$(dx run " + config.app_project_id + config.app_path + " -y"  # start of dx run command
@@ -70,13 +70,13 @@ class upload2Nexus(object):
 
         self.generic_error_email = config.user_error_message
 
-    def take_inputs(self, email, vcf_file, bed_file):
+    def take_inputs(self, email, vcf_file, bed_file, genome_build):
         """Captures the input arguments (email, vcf_file, bed_file)"""
 
         # assign inputs to self variables
         self.email = email
         self.vcf_filepath = vcf_file
-        self.selected_genome_build = genome_build
+        self.genome_build = genome_build
         # build path and filename
         self.vcf_basename = os.path.basename(self.vcf_filepath)
         # The vcf_basename will get updated after the vcf has been stripped
@@ -85,11 +85,11 @@ class upload2Nexus(object):
         self.directory = os.path.dirname(self.vcf_filepath)
 
         # Select correct files from the config file for the selected genome build
-        if self.selected_genome_build == "GRCh37":
+        if self.genome_build == "GRCh37":
             self.app_truth_vcf = config.app_truth_vcf_37
             self.app_panel_bed = config.app_panel_bed_37
             self. app_high_conf_bed = config.app_high_conf_bed_37
-        elif self.selected_genome_build == "GRCh38":
+        elif self.genome_build == "GRCh38":
             self.app_truth_vcf = config.app_truth_vcf_38 
             self.app_panel_bed = config.app_panel_bed_38
             self.app_high_conf_bed = config. app_high_conf_bed_38
@@ -98,19 +98,19 @@ class upload2Nexus(object):
             self.email_subject = "Benchmarking Tool: Selected genome build not recognised "
             self.email_priority = 1  # high priority
             self.email_message = ("vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput="
-                                  + self.timestamp + "\nerror=" + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.selected_genome_build)  # state all inputs and error
+                                  + self.timestamp + "\nerror=" + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.genome_build )  # state all inputs and error
             self.send_an_email()
 
             # send an error email to user
             self.email_subject = "Benchmarking Tool: Selected genome build not recognised "
             self.email_priority = 1  # high priority
-            self.email_message = self.generic_error_email + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.selected_genome_build + "\n"
+            self.email_message = self.generic_error_email + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.genome_build + "\n"
             self.you = [self.email]
             self.send_an_email()
 
             # write error to log file
             self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write("Benchmarking Tool: Selected genome build not recognised: " + self.selected_genome_build)
+            self.logfile.write("Benchmarking Tool: Selected genome build not recognised: " + self.genome_build)
             self.logfile.close()
 
         # if a bed file has been supplied...
@@ -286,7 +286,7 @@ class upload2Nexus(object):
         dxrun_cmd = (self.base_cmd + config.app_query_vcf + "'{}'".format(config.data_project_id + self.nexus_folder + "/"
                      + self.vcf_basename) + config.app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                      + self.app_truth_vcf + self.app_panel_bed + self.app_high_conf_bed + config.app_truth + self.dest
-                     + self.nexus_folder + self.genome_build_cmd + self.selected_genome_build + self.token)
+                     + self.nexus_folder + self.genome_build_cmd + self.genome_build + "'" + self.token)
 
         # write source cmd
         run_bash_script.write(self.source_command)
@@ -583,6 +583,7 @@ class upload2Nexus(object):
             # Name of file from which summary is taken
             self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
                                   + "\nbed (if supplied):\n" + self.bed_basename
+                                  + "\nreference build selected:\n" + self.genome_build
                                   + "\n\nSummary (taken from "
                                   + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                                   + ".extended.csv):\n")

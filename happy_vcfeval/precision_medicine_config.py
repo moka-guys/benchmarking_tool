@@ -2,8 +2,8 @@
 DNA Nexus Upload agent configuration
 '''
 #set debug mode
-#debug=True
-debug=False
+debug=True
+#debug=False
 
 #IP address for the server
 url="https://genomics.viapath.co.uk"
@@ -15,7 +15,10 @@ upload_agent = "/opt/dnanexus-upload-agent-1.5.30-linux/ua"
 import os
 # read in secret credentials from .env file
 from dotenv import load_dotenv
-load_dotenv(".env")  # take environment variables from .env.
+dirname = os.path.dirname(__file__)
+env_path = os.path.abspath(os.path.join(dirname + "/.env"))
+load_dotenv(env_path)
+# load_dotenv("/var/www/django/benchmarking_tool_dev/.env")  # take environment variables from .env.
 
 # SECURITY WARNING: To keep the Nexus_API_Key used in production secret
 # it is stored outside version control in .env
@@ -53,8 +56,8 @@ tool_version="v1.6"
 ################ Emails###############################
 # SECURITY WARNING: To keep the credentials used in production secret
 # user and password are stored outside version control in .env
-user = os.environ.get("USER")
-pw   = os.environ.get("PW")
+user = os.getenv("EMAIL_USER")
+pw   = os.getenv("PW")
 host = 'email-smtp.eu-west-1.amazonaws.com'
 port = 587
 # The address that will be spoofed
