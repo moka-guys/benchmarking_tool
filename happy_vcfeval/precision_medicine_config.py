@@ -5,20 +5,14 @@ DNA Nexus Upload agent configuration
 #debug=True
 debug=False
 
+import os
+
 #IP address for the server
 url="https://genomics.viapath.co.uk"
 
 ########################## DNA Nexus setting#############################
 #Upload agent path
 upload_agent = "/opt/dnanexus-upload-agent-1.5.30-linux/ua"
-
-import os
-# read in secret credentials from .env file
-from dotenv import load_dotenv
-dirname = os.path.dirname(__file__)
-env_path = os.path.abspath(os.path.join(dirname + "/.env"))
-load_dotenv(env_path)
-# load_dotenv("/var/www/django/benchmarking_tool_dev/.env")  # take environment variables from .env.
 
 # SECURITY WARNING: To keep the Nexus_API_Key used in production secret
 # it is stored outside version control in .env
@@ -36,7 +30,7 @@ app_panel_bed_37= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-F25VXZj0y
 app_high_conf_bed_37= " -ihigh_conf_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-F45P6k80jy1jpv6J9G8gG3P0'"
 # Files for genome build 38
 app_truth_vcf_38=" -itruth_vcf='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGQ0xkZ2qxf92gGVQq4K'"     
-app_panel_bed_38= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2Gb8F00xkZ7kz646J88gZzK'"
+app_panel_bed_38= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G4xjGg80jy1VGzXp1x9qY4yX'"
 app_high_conf_bed_38= " -ihigh_conf_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGj0xkZ9V31YPj9xxg1J'"
 
 # App inputs
@@ -56,8 +50,8 @@ tool_version="v1.6"
 ################ Emails###############################
 # SECURITY WARNING: To keep the credentials used in production secret
 # user and password are stored outside version control in .env
-user = os.getenv("EMAIL_USER")
-pw   = os.getenv("PW")
+#user = os.environ.get("EMAIL_USER")
+#pw   = os.environ.get("EMAIL_PASSWORD")
 host = 'email-smtp.eu-west-1.amazonaws.com'
 port = 587
 # The address that will be spoofed
