@@ -29,6 +29,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # it is stored outside version control in .env
 SECRET_KEY = env.str("SECRET_KEY")
 
+EMAIL_USER = env.str("EMAIL_USER")
+EMAIL_PASSWORD = env.str("EMAIL_PASSWORD")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 

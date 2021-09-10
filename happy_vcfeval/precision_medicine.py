@@ -636,5 +636,5 @@ class upload2Nexus(object):
         server.set_debuglevel(1)  # verbosity
         server.starttls()
         server.ehlo()
-        server.login(config.user, config.pw)
+        server.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
         server.sendmail(config.me, self.you, m.as_string())
