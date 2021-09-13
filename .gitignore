@@ -1,8 +1,7 @@
 *.pyc
-*settings.py
 db.sqlite3
 media/
 known_issues.txt
 new_features.txt
-happy_vcfeval/precision_medicine_config.py
 happy_vcfeval/test_precision_medicine.py
+.env
