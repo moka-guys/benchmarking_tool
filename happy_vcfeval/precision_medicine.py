@@ -87,11 +87,9 @@ class upload2Nexus(object):
         # Select correct files from the config file for the selected genome build
         if self.genome_build == "GRCh37":
             self.app_truth_vcf = config.app_truth_vcf_37
-            self.app_panel_bed = config.app_panel_bed_37
             self. app_high_conf_bed = config.app_high_conf_bed_37
         elif self.genome_build == "GRCh38":
             self.app_truth_vcf = config.app_truth_vcf_38 
-            self.app_panel_bed = config.app_panel_bed_38
             self.app_high_conf_bed = config. app_high_conf_bed_38
         else:
             # send an error email to mokaguys
@@ -280,7 +278,11 @@ class upload2Nexus(object):
             self.app_panel_bed = " -ipanel_bed=" + "'{}'".format(
                 config.data_project_id + self.nexus_folder + "/" + self.bed_basename)
         else:
-            self.app_panel_bed = config.app_panel_bed
+            if self.genome_build == "GRCh37":
+                self.app_panel_bed = config.app_panel_bed_37
+            elif self.genome_build == "GRCh38": 
+                self.app_panel_bed = config.app_panel_bed_38
+
         # dx run command
         # Construct the dx run command to submit hap.py job and capture returned job id.
         dxrun_cmd = (self.base_cmd + config.app_query_vcf + "'{}'".format(config.data_project_id + self.nexus_folder + "/"
