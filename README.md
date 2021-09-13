@@ -1,8 +1,7 @@
-# Benchmarking Tool Interface v1.5
+# Benchmarking Tool Interface v1.6
 
 ## What does this app do?
-This project contains the code for the Django web interface (https://genomics.viapath.co.uk/benchmark) for the precision medicine hap.py DNAnexus app (https://github.com/moka-guys/dnanexus_happy)
-
+This project contains the code for the Django web interface (https://genomics.viapath.co.uk/benchmark) for the precision medicine hap.py DNAnexus app (https://github.com/moka-guys/dnanexus_happy).  Users can upload a VCF and BED file, then select the appropriate reference build (Genome Reference Consortium Human Build 37 or 38).
 
 ## Installation
 * install Apache and Apache WSGI module `sudo apt-get install apache2 libapache2-mod-wsgi`
@@ -14,6 +13,7 @@ This project contains the code for the Django web interface (https://genomics.vi
 * Install DNAnexus SDK and upload agent.
 * Clone this repository.
 * Some settings files containing sensitive information are stored outside of this repository. Copy the following files and folders from the `170921_Benchmarking_Backup/mokaguys_project/` folder on MokaNAS:
+  * .env file
   * media/ (folder and contents)
   * known_issues.txt
   * new_features.txt
