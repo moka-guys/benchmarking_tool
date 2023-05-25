@@ -240,9 +240,9 @@ class upload2Nexus(object):
         # open script
         run_bash_script = open(run_bash_script_name, 'w')
 
-        # If a bedfile has been submitted, update the -ipanel_bed argument to use the users bed file rather than the
-        # default WES capture kit bedfile specified in the config file (config.app_panel_bed). Need to construct path to bedfile in DNANexus
-        # project
+    # the vcfeval app requires -ipanel_bed. This performs a  bedtools intersect between this bed and the high confidence BED.
+	# If a bedfile has been submitted, update the -ipanel_bed argument to use the users bed file .
+	# If no bedfile has been provided give the build specific high confidence bedfile to ipanel_bed (set in config) to ensure no additional filtering is performed.
         if self.bed_filepath:
             self.app_panel_bed = " -ipanel_bed=" + "'{}'".format(
                 config.data_project_id + self.nexus_folder + "/" + self.bed_basename)
