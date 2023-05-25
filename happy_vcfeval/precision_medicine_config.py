@@ -25,12 +25,15 @@ app_project_id="project-ByfFPz00jy1fk6PjpZ95F27J:"
 data_project_id="project-FY41yg00bXYjkqP8350F7Ykz:"
 
 # Files for genome build 37
-app_truth_vcf_37=" -itruth_vcf='project-ByfFPz00jy1fk6PjpZ95F27J:file-F3V5kgj0jy1b0qFG53k8Ffj4'"     
-app_panel_bed_37= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-F25VXZj0ybjzxpg0JvppGgQq'"
+app_truth_vcf_37=" -itruth_vcf='project-ByfFPz00jy1fk6PjpZ95F27J:file-F3V5kgj0jy1b0qFG53k8Ffj4'"
+# dnanexus happy app requires a panel bedfile. This is used to restrict regions within the high conf regions.
+# if user doesn't provide one, use the high confidence region, to ensure regions aren't excluded unexpectedly
+app_panel_bed_37= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-F45P6k80jy1jpv6J9G8gG3P0'"
 app_high_conf_bed_37= " -ihigh_conf_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-F45P6k80jy1jpv6J9G8gG3P0'"
 # Files for genome build 38
-app_truth_vcf_38=" -itruth_vcf='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGQ0xkZ2qxf92gGVQq4K'"     
-app_panel_bed_38= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G4xjGg80jy1VGzXp1x9qY4yX'"
+app_truth_vcf_38=" -itruth_vcf='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGQ0xkZ2qxf92gGVQq4K'"
+# see comment for panel bedfile in build 37 section above     
+app_panel_bed_38= " -ipanel_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGj0xkZ9V31YPj9xxg1J'"
 app_high_conf_bed_38= " -ihigh_conf_bed='project-ByfFPz00jy1fk6PjpZ95F27J:file-G2BfBGj0xkZ9V31YPj9xxg1J'"
 
 # App inputs
@@ -45,7 +48,7 @@ app_path="Apps/vcfeval_hap.py/vcfeval_hap.py_v1.4.0"
 happy_version="v0.3.9"
 
 #Benchmarking tool version
-tool_version="v1.6"
+tool_version="v1.7"
 
 ################ Emails###############################
 # SECURITY WARNING: To keep the credentials used in production secret
