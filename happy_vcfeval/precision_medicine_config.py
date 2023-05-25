@@ -47,7 +47,7 @@ app_path="Apps/vcfeval_hap.py/vcfeval_hap.py_v1.4.0"
 happy_version="v0.3.9"
 
 #Benchmarking tool version
-tool_version="v1.6"
+tool_version="v1.7"
 
 ################ Emails###############################
 # SECURITY WARNING: To keep the credentials used in production secret
