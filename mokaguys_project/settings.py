@@ -137,8 +137,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
-STATIC_URL = '/benchmark-dev/static/'
+STATIC_URL = '/benchmark/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'happy_vcfeval/static/')
 
-MEDIA_URL = '/benchmark-dev/files/'
+MEDIA_URL = '/benchmark/files/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
