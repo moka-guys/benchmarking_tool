@@ -271,9 +271,8 @@ class upload2Nexus(object):
         # open script
         run_bash_script = open(run_bash_script_name, 'w')
 
-        # If a bedfile has been submitted, update the -ipanel_bed argument to use the users bed file rather than the
-        # default WES capture kit bedfile specified in the config file (config.app_panel_bed). Need to construct path to bedfile in DNANexus
-        # project
+        # the dnanexus app requires a panel bedfile. This is used along with the hig confidence region bedfile to restrict regions assessed.
+        # If no bedfile is provided the high confidence region bedfile is provided (set in config)
         if self.bed_filepath:
             self.app_panel_bed = " -ipanel_bed=" + "'{}'".format(
                 config.data_project_id + self.nexus_folder + "/" + self.bed_basename)
