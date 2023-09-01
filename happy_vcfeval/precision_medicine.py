@@ -374,8 +374,6 @@ class upload2Nexus(object):
                     indel_precision_upperCI = self.format_result_5dp(splitline[68])
             # close file
             summary_csv.close()
-            print snp_recall,snp_recall_lowerCI, snp_recall_upperCI, snp_precision,snp_precision_lowerCI,snp_precision_upperCI
-            print indel_recall, indel_recall_lowerCI, indel_recall_upperCI, indel_precision, indel_precision_lowerCI, indel_precision_upperCI 
             # send email
             email_subject = "Benchmarking Tool: Job Finished"
             
@@ -384,20 +382,16 @@ class upload2Nexus(object):
             # Names of supplied VCF and BED files to identify the results
             # Name of file from which summary is taken
             email_message = "Analysis complete for vcf: %s\nbed (if supplied): %s\nreference build selected: %s\nSummary (taken from happy.%s.extended.csv):\n" % (self.vcf_basename_orig, self.bed_basename,self.genome_build,self.vcf_basename_orig.split(".vcf")[0])
-            print "386 %s" % email_message
             # If SNP results are present in the extended summary file, include the recall, precision and confidence intervals in the email
             if snps_found:
                 email_message += "\nSNP recall (sensitivity)={recall} (95% CI: {recall_lower}-{recall_upper})\nSNP precision (PPV) = {precision} (95% CI: {precision_lower}-{precision_upper})".format(recall = snp_recall, recall_lower = snp_recall_lowerCI, recall_upper = snp_recall_upperCI, precision = snp_precision,precision_lower = snp_precision_lowerCI,precision_upper = snp_precision_upperCI)
-                print "390: %s" %  email_message
             # If INDEL results are present in the extended summary file, include the recall, precision and confidence intervals in the email
             if indels_found:
                 email_message += "\nINDEL recall (sensitivity)={recall} (95% CI: {recall_lower}-{recall_upper})\nINDEL precision (PPV) = {precision} (95% CI: {precision_lower}-{precision_upper})".format(recall = indel_recall, recall_lower =indel_recall_lowerCI, recall_upper = indel_recall_upperCI, precision = indel_precision,precision_lower = indel_precision_lowerCI,precision_upper = indel_precision_upperCI)
-                print "395: %s " % email_message
             # A link to view the detailed summary html report
             # A link to download the full output .zip archive
             # Version numbers of hap.py and the DNAnexus app that were used to produce the results
             email_message += "\n\nA detailed summary report is available here:\n%s\nFull results are available here:\n%s\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py %s (https://github.com/Illumina/hap.py) implemented in Synnovis Genome Informatics DNAnexus app: %s" % (os.path.join(config.url,config.MEDIA_URL, self.directory.split("media/")[1], "happy.%s.summary_report.html" % (self.vcf_basename_orig.split(".vcf")[0])),os.path.join(config.url,config.MEDIA_URL, self.directory.split("media/")[1], "happy.%s.zip" % (self.vcf_basename_orig.split(".vcf")[0])),config.happy_version,os.path.basename(config.app_path))
-            print "400: %s" % email_message
             with open(self.logfile_name, 'a') as logfile:
                 logfile.write("email message: %s" % email_message)
             self.send_an_email(config.default_email_priority,email_subject,email_message,[config.mokaguys_email,self.user_email])
