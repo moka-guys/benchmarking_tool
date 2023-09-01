@@ -1,12 +1,12 @@
 '''
 DNA Nexus Upload agent configuration
 '''
-#set debug mode
-#debug=True
-debug=False
-
 import os
 from django.conf import settings
+
+#TESTING?
+# update media and static URL in ../mokaguys_project/settings.py
+
 #IP address for the server
 url="https://genomics.viapath.co.uk"
 
