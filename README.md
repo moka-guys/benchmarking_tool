@@ -1,4 +1,4 @@
-# Benchmarking Tool Interface v1.7
+# Benchmarking Tool Interface v1.8
 
 ## What does this app do?
 This project contains the code for the Django web interface (https://genomics.viapath.co.uk/benchmark) for the precision medicine hap.py DNAnexus app (https://github.com/moka-guys/dnanexus_happy).  Users can upload a VCF and BED file, then select the appropriate reference build (Genome Reference Consortium Human Build 37 or 38).
