@@ -1,4 +1,4 @@
-import gzip
+
 import os
 import smtplib
 import subprocess
@@ -6,11 +6,8 @@ import sys
 import zipfile
 import time
 
-from django.conf import settings
 from email.Message import Message
 import precision_medicine_config as config # Config file containing variables
-
-
 
 class upload2Nexus(object):
     """
@@ -21,7 +18,7 @@ class upload2Nexus(object):
 
     def __init__(self):
         #  variables that are set from  inputs
-        self.email = ""
+        self.user_email = ""
         self.vcf_filepath = ""
         self.vcf_basename = ""
         self.vcf_basename_orig = ""
@@ -30,15 +27,12 @@ class upload2Nexus(object):
         self.app_panel_bed = ""
         self.genome_build  = ""
 
-        self.vcf_header = os.path.dirname(os.path.realpath(__file__)) + "/vcf_header.vcf"
-
         ################ Working dir ###############################
         # where will the files be downloaded to/from?
         self.directory = ""
         self.timestamp = ""
 
         # log file variables
-        self.logfile = ""
         self.logfile_name = ""
 
         ################ DNA Nexus###############################
@@ -55,26 +49,17 @@ class upload2Nexus(object):
         self.genome_build_cmd = " -igenome_reference='"
         self.nexus_folder = "/Tests/"  # path to files in project
         self.end_of_upload = " --do-not-compress "  # don't compress upload
-        self.base_cmd = "jobid=$(dx run " + config.app_project_id + config.app_path + " -y"  # start of dx run command
+        self.base_cmd = "jobid=$(dx run " + config.app_project_id + config.app_path + " -y --instance-type mem1_ssd1_v2_x2"  # start of dx run command
         self.token = " --brief --auth-token " + config.Nexus_API_Key + ")"  # authentication for dx run
 
-        # variable to catch the analysis id of job
-        self.analysis_id = ""
-
-        ################ Emails###############################
-        self.you = [config.you]
-        self.smtp_do_tls = True
-        self.email_subject = ""
-        self.email_message = ""
-        self.email_priority = 3
-
-        self.generic_error_email = config.user_error_message
+        # variable to catch the id of job
+        self.jobid = ""
 
     def take_inputs(self, email, vcf_file, bed_file, genome_build):
         """Captures the input arguments (email, vcf_file, bed_file)"""
 
         # assign inputs to self variables
-        self.email = email
+        self.user_email = email
         self.vcf_filepath = vcf_file
         self.genome_build = genome_build
         # build path and filename
@@ -92,24 +77,9 @@ class upload2Nexus(object):
             self.app_truth_vcf = config.app_truth_vcf_38 
             self.app_high_conf_bed = config. app_high_conf_bed_38
         else:
-            # send an error email to mokaguys
-            self.email_subject = "Benchmarking Tool: Selected genome build not recognised "
-            self.email_priority = 1  # high priority
-            self.email_message = ("vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput="
-                                  + self.timestamp + "\nerror=" + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.genome_build )  # state all inputs and error
-            self.send_an_email()
-
-            # send an error email to user
-            self.email_subject = "Benchmarking Tool: Selected genome build not recognised "
-            self.email_priority = 1  # high priority
-            self.email_message = self.generic_error_email + "\n\nBenchmarking Tool: Selected genome build not recognised: " + self.genome_build + "\n"
-            self.you = [self.email]
-            self.send_an_email()
-
             # write error to log file
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write("Benchmarking Tool: Selected genome build not recognised: " + self.genome_build)
-            self.logfile.close()
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("Benchmarking Tool: Selected genome build not recognised: " + self.genome_build)
 
         # if a bed file has been supplied...
         if bed_file:
@@ -125,7 +95,7 @@ class upload2Nexus(object):
         self.timestamp = self.directory.split("/")[-1]
 
         # add vcf and timestamp to the generic error email message
-        self.generic_error_email = "vcf = " + self.vcf_basename_orig + "\n\n" + self.generic_error_email + "timestamp = " + self.timestamp
+        self.user_error_message = "vcf = %s\n%s\ntimestamp=%s" % (self.vcf_basename_orig , config.user_error_message, self.timestamp)
 
         # update nexus folder so it is Tests/timestamp
         self.nexus_folder = self.nexus_folder + self.directory.split("/")[-1]
@@ -133,143 +103,61 @@ class upload2Nexus(object):
         # use  timestamp to create the logfile name
         self.logfile_name = os.path.join(self.directory, self.timestamp + "_logfile.txt")
 
-        ##### SKIP VCF STRIP FUNCTION, SEE https://github.com/moka-guys/benchmarking_tool/issues/36 #####
-        #self.vcf_strip()
-
         # call function to upload to nexus
-        self.upload_to_Nexus()
-
-    def vcf_strip(self):
-        """
-        Removes the header from vcf and replaces with a stock header and removes unnecessary fields.
-        This is to avoid errors when processing
-        """
-        # write to logfile
-        self.logfile = open(self.logfile_name, 'w')
-        self.logfile.write("email=" + self.email + "\noutput=" + self.timestamp + "\nvcf_filepath=" + self.vcf_filepath
-                           + "\nbed_filepath=" + self.bed_filepath + "\n")
-        # record in log file steps taken
-        self.logfile.write("removing unnecessary fields from VCF\n")
-        self.logfile.close()
-        # create new file name for modified vcf
-        output_vcf = self.vcf_filepath + '_stripped.vcf.gz'
-
-        # check if zipped or not to define settings used to read the file
-        if self.vcf_filepath.endswith('.gz'):
-            open_func = gzip.open
-            open_mode = 'rb'
-        else:
-            open_func = open
-            open_mode = 'r'
-        try:
-            # open vcf header as t and the query vcf with the required settings as q and output file as binary output o
-            with open(self.vcf_header, 'r') as t, open_func(self.vcf_filepath, open_mode) as q, gzip.open(output_vcf, 'wb') as o:
-                # for each line in q if it's not a header take the first 6 columns of each row, then add two full stops
-                # (replacing the filter and info ). Then remove everything except the GT field of format and sample
-                # fields. These fields are delimited by colon (:) so split on colon, then use .index() list method to
-                # get index of GT field so it can be retained.
-                output = "\n".join(["\t".join(line.rstrip().split('\t')[:6]
-                                              + ['.'] * 2
-                                              + [line.rstrip().split('\t')[8].split(":")[
-                                                     line.rstrip().split('\t')[8].split(":").index("GT")]]
-                                              + [line.rstrip().split('\t')[9].split(":")[
-                                                     line.rstrip().split('\t')[8].split(":").index("GT")]])
-                                    for line in q if not line.startswith('#')])
-                # write output with new header
-                o.write(t.read() + "\n" + output)
-
-        except Exception, e:
-            # send an error email to mokaguys
-            self.email_subject = "Benchmarking Tool: stderr reported when running job "
-            self.email_priority = 1  # high priority
-            self.email_message = ("vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput="
-                                  + self.timestamp + "\nerror=" + str(e))  # state all inputs and error
-            self.send_an_email()
-
-            # send an error email to user
-            self.email_subject = "Benchmarking Tool: Invalid VCF file "
-            self.email_priority = 1  # high priority
-            self.email_message = self.generic_error_email + "\n\nError message = \n" + str(e)
-            self.you = [self.email]
-            self.send_an_email()
-
-            # write error to log file
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write("Error whilst stripping VCF file:" + str(e) + "\nEXITING")
-            self.logfile.close()
-
-            # exit the script because an error was encountered.
-            sys.exit()
-
-        # set the new files as variables used to upload to nexus etc.
-        self.vcf_filepath = output_vcf
-        self.vcf_basename = os.path.basename(self.vcf_filepath)
-
-        # call next function to upload to nexus
         self.upload_to_Nexus()
 
     def upload_to_Nexus(self):
         """Uploads vcf/bed files to Nexus"""
-        # write to logfile
-        self.logfile = open(self.logfile_name, 'a')
-        self.logfile.write("uploading to nexus\n")
-        self.logfile.close()
-
+        with open(self.logfile_name, 'a') as logfile:
+            logfile.write("uploading to nexus\n")
+        
         # create bash script name
         upload_bash_script_name = os.path.join(self.directory, self.timestamp + "_upload.sh")
 
-        # open bash script
-        upload_bash_script = open(upload_bash_script_name, 'w')
+        # because bedfile is optional need to handle it possibly being absent, whilst also escaping any spaces etc
+        if self.bed_filepath:
+            bed_upload_string="'%s'" % self.bed_filepath
+        else:
+            bed_upload_string=""
 
         # upload command
         # eg path/to/ua  --auth-token abc  --project  projectname --folder /nexus/path --do-not-compress /file/to/upload
         # .format() method used to enclose vcf and bed filepaths in quotes incase there's any characters in filenames
         # that could break the command (although all special characters should have been removed in an earlier step)
-        upload_cmd = (self.upload_agent + self.auth + self.nexusprojectstring + config.data_project_id.replace(":", "")
-                      + self.dest + self.nexus_folder + self.end_of_upload + "'{}'".format(self.vcf_filepath))
-        if self.bed_filepath:
-            upload_cmd += ("\n" + self.upload_agent + self.auth + self.nexusprojectstring
-                           + config.data_project_id.replace(":", "") + self.dest + self.nexus_folder + self.end_of_upload
-                           + "'{}'".format(self.bed_filepath))
-
-        # write the source and upload cmds
-        upload_bash_script.write(self.source_command)
-        upload_bash_script.write(upload_cmd)
-
-        # close bash script
-        upload_bash_script.close()
+        upload_cmd = (config.upload_agent + self.auth + self.nexusprojectstring + config.data_project_id.replace(":", "")
+                      + self.dest + self.nexus_folder + self.end_of_upload + "'%s' %s") % (self.vcf_filepath,bed_upload_string)
+        
+        # open bash script
+        with open(upload_bash_script_name, 'w') as upload_script:
+            # write the source and upload cmds
+            upload_script.write(self.source_command)
+            upload_script.write(upload_cmd)
 
         # run the command
-        proc = subprocess.Popen(["bash " + upload_bash_script_name], stderr=subprocess.STDOUT, stdout=subprocess.PIPE
-                                , shell=True)
+        proc = subprocess.Popen(["bash " + upload_bash_script_name], stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
 
         # capture the streams (err is redirected to out above)
         (out, err) = proc.communicate()
-        self.logfile = open(self.logfile_name, 'a')
-        self.logfile.write(out + "\n")
-        self.logfile.close()
+        with open(self.logfile_name, 'a') as logfile:
+            logfile.write(out + "\n")
+
         # call next function
         self.run_app()
 
         # delete shell script - this will only happend once the script has finished running
         os.remove(upload_bash_script_name)
-        self.logfile = open(self.logfile_name, 'a')
-        self.logfile.write("deleting upload script\nFIN")
-        self.logfile.close()
+        with open(self.logfile_name, 'a') as logfile:
+            logfile.write("deleting upload script\nFIN")
+        
 
     def run_app(self):
         """Runs DNANexus hap.py workflow"""
         # write to logfile
-        self.logfile = open(self.logfile_name, 'a')
-        self.logfile.write("running app\n")
-        self.logfile.close()
+        with open(self.logfile_name, 'a') as logfile:
+            logfile.write("running app\n")
+        
         # create bash script name
         run_bash_script_name = os.path.join(self.directory, self.timestamp + "_run.sh")
-
-        # print run_bash_script_name
-
-        # open script
-        run_bash_script = open(run_bash_script_name, 'w')
 
         # the dnanexus app requires a panel bedfile. This is used along with the hig confidence region bedfile to restrict regions assessed.
         # If no bedfile is provided the high confidence region bedfile is provided (set in config)
@@ -288,179 +176,106 @@ class upload2Nexus(object):
                      + self.vcf_basename) + config.app_prefix + "happy." + self.vcf_basename_orig.split(".vcf")[0]
                      + self.app_truth_vcf + self.app_panel_bed + self.app_high_conf_bed + config.app_truth + self.dest
                      + self.nexus_folder + self.genome_build_cmd + self.genome_build + "'" + self.token)
-
-        # write source cmd
-        run_bash_script.write(self.source_command)
-        # can't use dest and project together so inorder to specify dest need to preselect the project
-        run_bash_script.write("dx select " + config.data_project_id.replace(":", "") + " " + self.auth + "\n")
-        # write dx run cmd
-        run_bash_script.write(dxrun_cmd + "\n")
-        # echo the job id to use to monitor progress
-        run_bash_script.write("echo $jobid")
-        # close bash script
-        run_bash_script.close()
-
+        with open(run_bash_script_name, 'w') as run_bash_script:
+            # write source cmd
+            run_bash_script.write("%s\ndx select %s %s\n%s\necho $jobid" %(self.source_command,config.data_project_id.replace(":", ""),self.auth,dxrun_cmd))
+        
         # run the bash script containing dx run command
-        proc = subprocess.Popen(["bash " + run_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                                shell=True)
+        proc = subprocess.Popen(["bash " + run_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,shell=True)
 
         # capture the streams 
         (out, err) = proc.communicate()
         if err:
             # send an error email to mokaguys
-            self.email_subject = "Benchmarking Tool: stderr reported when running job "
-            self.email_priority = 1  # high priority
-            self.email_message = ("vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput="
-                                  + self.timestamp + "\nerror=" + err)  # state all inputs and error
-            self.send_an_email()
+            email_subject = "Benchmarking Tool: stderr reported when running job "
+            email_message = "vcf=%s\nemail=%s\noutput=%s\nerror=%s" %(self.vcf_basename_orig, self.user_email, self.timestamp, err)  # state all inputs and error
+            self.send_an_email(config.failed_email_priority,email_subject,email_message,[config.mokaguys_email])
 
             # send a error email to user
             # Change self.you to the user's email address rather than mokaguys
-            self.you = [self.email]
-            self.email_subject = config.user_error_subject
-            self.email_message = self.generic_error_email + "\n\nError message = \n" + err
-            self.send_an_email()
+            email_subject = config.user_error_subject
+            email_message = self.user_error_message + "\n\nError message = \n" + err
+            self.send_an_email(config.default_email_priority,email_subject,email_message,[self.user_email])
 
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write(out + "\nEXITING")
-            self.logfile.close()
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("stderr:\n%s\n\nEXITING" % err)
+            
             # exit
             sys.exit()
         else:
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write(out + "\n")
-            self.logfile.close()
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write(out + "\n")
+            
             # capture the job id
-            self.analysis_id = "job" + out.split('job')[-1]
+            self.jobid = "job" + out.split('job')[-1].rstrip()
             # call function which monitors progress
-            self.monitor_progress()
+            job_state = str(self.monitor_progress())
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("outside of moniitor progress. job_state=%s\n" % job_state)
+            # job state can be done, failed or something else (timeout)
+            if "done" in job_state:
+                self.download_result()
+            elif "fail" in job_state:
+                with open(self.logfile_name, 'a') as logfile:
+                    logfile.write("fail in job_state")
+                # get dnanexus job log
+                stderr = self.get_job_log(self.jobid)
+                #email to mokaguys
+                email_subject = "Benchmarking Tool: job has failed "
+                email_message = "vcf=%s\nemail=%s\noutput_folder=%s\nnexus_job_id=%s\n\nlast 50 lines of log:\n%s" % (self.vcf_basename_orig, self.user_email, self.timestamp, self.jobid, stderr)
+                self.send_an_email(config.failed_email_priority,email_subject,email_message,[config.mokaguys_email])
+                # send a error email to user
+                email_message = self.user_error_message + "\n\nlast 50 lines of STDERR from app:\n" + stderr
+                self.send_an_email(config.default_email_priority,config.user_error_subject,email_message, self.user_email)
+                # write to logfile
+                with open (self.logfile_name, 'a') as logfile:
+                    logfile.write("Job has failed. Email has been sent to %s with error message %s" % (self.user_email, email_message)) # email message includes app stderr
+            # if job didn't finish in 200 mins
+            else:
+                with open(self.logfile_name, 'a') as logfile:
+                    logfile.write("fail or done not in job_state")
+                email_subject = "Benchmarking Tool: job is not done or failed after %s mins " % config.max_wait_time
+                email_message = "vcf=%s\nemail=%s\noutput_folder=%s\nnexus_job_id=%s" % (self.vcf_basename_orig, self.user_email, self.timestamp, self.jobid)
+                self.send_an_email(config.failed_email_priority,email_subject,email_message,[config.mokaguys_email])
+                with open (self.logfile_name, 'a') as logfile:
+                    logfile.write("Unable to determine job state after 200 mins")
+                              
             # once the script finishes delete the .sh script
             os.remove(run_bash_script_name)
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write("deleting run script\n")
-            self.logfile.close()
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("deleting run script (%s)\n" % run_bash_script_name)
 
     def monitor_progress(self):
         """Monitors the job and alerts if it has failed"""
-        # write to logfile
-        self.logfile = open(self.logfile_name, 'a')
-        self.logfile.write("monitoring progress\n")
-        self.logfile.close()
-        # command which returns a job-id within the project if successfully completed
-        status_cmd = ("dx find jobs --project " + config.data_project_id + " --id " + self.analysis_id.rstrip()
-                      + " --brief --state done")
-
-        # create bash script name
-        status_bash_script_name = os.path.join(self.directory, self.timestamp + "_status.sh")
-        # open script
-        status_bash_script = open(status_bash_script_name, 'w')
-        # write the source cmd
-        status_bash_script.write(self.source_command + "\n")
-        # write the status command
-        status_bash_script.write(status_cmd + "\n")
-        # close bash script
-        status_bash_script.close()
-
-        # command which returns a job-id within the project if successfully completed
-        fail_status_cmd = ("dx find jobs --project " + config.data_project_id + " --id " + self.analysis_id.rstrip()
-                           + " --brief --state failed")
-
-        # create bash script name
-        fail_status_bash_script_name = os.path.join(self.directory, self.timestamp + "_fail_status.sh")
-        # open script
-        fail_status_bash_script = open(fail_status_bash_script_name, 'w')
-        # write the source cmd
-        fail_status_bash_script.write(self.source_command + "\n")
-        # write the status command
-        fail_status_bash_script.write(fail_status_cmd + "\n")
-        # close bash script
-        fail_status_bash_script.close()
-
-        # initialise count variable, used to count how long app has been running for
-        count = 0
-        # call check status module to execute the script. will only return true when job-id is found
-        while not self.check_status(status_bash_script_name):
-            # use count to apply a time out limit    
-            # if has been running for < 45 mins
-            if count < 45:
-
-                # write to logfile
-                self.logfile = open(self.logfile_name, 'a')
-                self.logfile.write("job not finished. waited for " + str(count) + " minutes so far\n")
-                self.logfile.close()
-
-                # increase count
-                count += 1
-
+        job_state=False
+        time_counter=0
+        while time_counter < config.max_wait_time:
+            job_state = str(self.check_status(self.jobid).rstrip())
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("job state = %s after %s mins\n" % (job_state,time_counter))
+            if "done" in job_state or "fail" in job_state:
+                break
+            else:
                 # wait for 1 mins
                 time.sleep(60)
+                time_counter+=1
+        return job_state
 
-                # check if it's failed
-                if self.check_status(fail_status_bash_script_name):
-                    # if failed increase count to stop the loop
-                    count += 100
-            else:
-                # if has been running for 45 mins stop or the job has failed
-                # access the error message from the app:
-                # command which returns stderr from job
-                error_cmd = "dx watch " + self.analysis_id.rstrip() + "  --no-timestamps --get-stderr -q | tail -n 50"
-
-                # create bash script name
-                read_job_error_bash_script_name = (os.path.join(self.directory, self.timestamp
-                                                                + "_read_job_error.sh"))
-                # open script
-                read_job_error_bash_script = open(read_job_error_bash_script_name, 'w')
-                # write the source cmd
-                read_job_error_bash_script.write(self.source_command + "\n")
-                # write the status command
-                read_job_error_bash_script.write(error_cmd + "\n")
-                # close bash script
-                read_job_error_bash_script.close()
-
-                # execute the status script
-                proc = subprocess.Popen(["bash " + read_job_error_bash_script_name], stderr=subprocess.PIPE,
-                                        stdout=subprocess.PIPE, shell=True)
-                # capture the output
-                (out, err) = proc.communicate()
-                # only will have stdout if the dx find jobs command terms are met (job finihsed successfully)
-                if out:
-                    app_std_error = out
-
-                # send a error email
-                self.email_subject = "Benchmarking Tool: job has failed or hasn't finished after 45 mins "
-                self.email_priority = 1
-                self.email_message = ("vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput="
-                                      + self.timestamp + "\nnexus_job_id=" + self.analysis_id
-                                      + "\n\nlast 50 lines of STDERR from app:\n" + app_std_error)
-                self.send_an_email()
-
-                # send a error email to user
-                self.you = [self.email]
-                self.email_subject = config.user_error_subject
-                self.email_message = self.generic_error_email + "\n\nlast 50 lines of STDERR from app:\n" + app_std_error
-                self.send_an_email()
-
-                self.logfile = open(self.logfile_name, 'a')
-                self.logfile.write("job has failed or hasn't finished after 45 mins!\nEmail has been sent to:"
-                                   + self.email + "\nwith error message:" + self.email_message
-                                   + "\n\nEXITING.\nSTDERR from app = \n" + app_std_error)
-                self.logfile.close()
-
-                # remove bash scripts
-                os.remove(status_bash_script_name)
-                os.remove(read_job_error_bash_script_name)
-                os.remove(fail_status_bash_script_name)
-                sys.exit()
-        else:
-            # job has finished. download output files
-            self.download_result()
-            # once finished remove shell script
-            os.remove(status_bash_script_name)
-            os.remove(fail_status_bash_script_name)
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write("deleting status scripts\n")
-            self.logfile.close()
-
+                
+    def get_job_log(self, jobid):
+        log_message="dx watch %s --no-timestamps --get-stderr -q %s | tail -n 50" % (jobid, self.auth)
+        joblog_script_name = os.path.join(self.directory, self.timestamp + "_joblog.sh")
+        with open(self.logfile_name, 'a') as logfile:
+            logfile.write("job log cmd %s\njoblog_script=%s" % (log_message,joblog_script_name))
+        # open script
+        with open(joblog_script_name, 'w') as joblog_script:
+            # write source cmd
+            joblog_script.write("%s\n%s" % (self.source_command,log_message))
+        
+        proc = subprocess.Popen(["bash %s" % joblog_script_name ], stderr=subprocess.PIPE,stdout=subprocess.PIPE, shell=True)
+        (out, err) = proc.communicate()
+        return out
+        
     def format_result_5dp(self, result_string):
         """If provided string can be converted to float, will round to 5dp and return as string. Otherwise will just return the string provided"""
         try:
@@ -468,77 +283,62 @@ class upload2Nexus(object):
         except ValueError:
             return result_string
 
-    def check_status(self, status_bash_script_name):
+    def check_status(self, jobid):
         """Used by monitor_progress() method to check status of job"""
-        # execute the status script
-        proc = subprocess.Popen(["bash " + status_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                                shell=True)
-        # capture the output
+        status_cmd="dx describe %s --json  %s | jq '.state'" % ( jobid, self.auth)
+        status_script_name = os.path.join(self.directory, self.timestamp + "_status.sh")
+        # open script
+        with open(status_script_name, 'w') as status_script:
+            # write source cmd
+            status_script.write("%s\ncd %s\n%s" % (self.source_command,self.directory,status_cmd))
+        
+        proc = subprocess.Popen(["bash %s" % status_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,shell=True)
         (out, err) = proc.communicate()
-        # only will have stdout if the dx find jobs command terms are met (job finihsed successfully)
         if out:
-            # return true to exit the sleep loop
-            return True
+            return out.rstrip()
         else:
-            # return false to continue sleep loop
             return False
 
     def download_result(self):
         """Downloads hap.py results and sends results email"""
-        self.logfile = open(self.logfile_name, 'a')
-        self.logfile.write("Job done, downloading\n")
-        self.logfile.close()
+        with open(self.logfile_name, 'a') as logfile:
+            logfile.write("Job done, downloading\n")
 
         # command to download files. downloads all files that have been output by the app (will have prefix self.output)
-        download_cmd = ("dx download " + config.data_project_id + self.nexus_folder + "/happy."
-                        + self.vcf_basename_orig.split(".vcf")[0] + "*" + self.auth)
+        download_cmd = ("dx download %s/happy.%s* %s " % (config.data_project_id + self.nexus_folder, self.vcf_basename_orig.split(".vcf")[0] ,self.auth))
         # create download script name
         download_bash_script_name = os.path.join(self.directory, self.timestamp + "_download.sh")
         # open script
-        download_bash_script = open(download_bash_script_name, 'w')
-        # write source cmd
-        download_bash_script.write(self.source_command)
-        # cd to location where files are to be downloaded
-        download_bash_script.write("cd " + self.directory + "\n")
-        # write download cmd
-        download_bash_script.write(download_cmd + "\n")
-        # close bash script
-        download_bash_script.close()
-
+        with open(download_bash_script_name, 'w') as download_bash_script:
+            # write source cmd
+            download_bash_script.write("%s\ncd %s\n%s" % (self.source_command,self.directory,download_cmd))
+        
         # run the command
-        proc = subprocess.Popen(["bash " + download_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                                shell=True)
+        proc = subprocess.Popen(["bash %s" % download_bash_script_name], stderr=subprocess.PIPE, stdout=subprocess.PIPE,shell=True)
 
         # capture the streams
         (out, err) = proc.communicate()
-        self.logfile = open(self.logfile_name, 'a')
-        self.logfile.write(out + "\n")
-        self.logfile.close()
+        # with open(self.logfile_name, 'a') as logfile:
+        #     logfile.write("cmd:%s\nstdout:\n%s\nstderr:\n%s\n" % ("bash %s" % download_bash_script_name,out,err))
+        
         # if error
         if err:
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write(err + "\nEXITING")
-            self.logfile.close()
-
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("stderr:%s\nEXITING" % err)
+            
             # send a error email
-            self.email_subject = "Benchmarking Tool: cannot download from nexus"
-            self.email_priority = 1
-            self.email_message = (
-                "vcf=" + self.vcf_basename_orig + "\nemail=" + self.email + "\noutput=" + self.timestamp
-                + "\nerr=" + err)
-            self.send_an_email()
+            email_subject = "Benchmarking Tool: cannot download from nexus"
+            email_message = "vcf=%s\nemail=%s\noutput=%s\nerr=%s" % (self.vcf_basename_orig, self.user_email, self.timestamp, err)
+            self.send_an_email(config.failed_email_priority,email_subject,email_message,[config.mokaguys_email])
 
             # send a error email to user
-            self.you = [self.email]
-            self.email_subject = config.user_error_subject
-            self.email_message = self.generic_error_email + "\n\nError message = \n" + err
-            self.send_an_email()
+            email_message = config.user_error_message + "\n\nError message = \n" + err
+            self.send_an_email(config.default_email_priority,config.user_error_subject,email_message,[self.user_email])
             sys.exit()
 
         else:
-            # add the user email to the email message
-            self.you.append(self.email)
-
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("opening summary.csv")
             # Need to parse the extended summary file to get recall and precision with confidence intervals (the normal summary file doesn't have confidence intervals)
             # This file is contained in the zip archive, so need to use zipfile module to read the file contents 
             summary_csv = (zipfile.ZipFile(os.path.join(self.directory, "happy." + self.vcf_basename_orig.split(".vcf")[0]
@@ -574,68 +374,46 @@ class upload2Nexus(object):
                     indel_precision_upperCI = self.format_result_5dp(splitline[68])
             # close file
             summary_csv.close()
-
             # send email
-            self.email_subject = "Benchmarking Tool: Job Finished"
-            self.email_priority = 3
+            email_subject = "Benchmarking Tool: Job Finished"
+            
             # Create the email body
             # Include:
             # Names of supplied VCF and BED files to identify the results
             # Name of file from which summary is taken
-            self.email_message = ("Analysis complete for vcf:\n" + self.vcf_basename_orig
-                                  + "\nbed (if supplied):\n" + self.bed_basename
-                                  + "\nreference build selected:\n" + self.genome_build
-                                  + "\n\nSummary (taken from "
-                                  + "happy." + self.vcf_basename_orig.split(".vcf")[0]
-                                  + ".extended.csv):\n")
+            email_message = "Analysis complete for vcf: %s\nbed (if supplied): %s\nreference build selected: %s\nSummary (taken from happy.%s.extended.csv):\n" % (self.vcf_basename_orig, self.bed_basename,self.genome_build,self.vcf_basename_orig.split(".vcf")[0])
             # If SNP results are present in the extended summary file, include the recall, precision and confidence intervals in the email
             if snps_found:
-                self.email_message += ("\nSNP recall (sensitivity)= " + snp_recall
-                                       + " (95% CI: " + snp_recall_lowerCI + " - "
-                                       + snp_recall_upperCI + ")\nSNP precision (PPV) = "
-                                       + snp_precision + " (95% CI: " + snp_precision_lowerCI
-                                       + " - " + snp_precision_upperCI + ")")
+                email_message += "\nSNP recall (sensitivity)={recall} (95% CI: {recall_lower}-{recall_upper})\nSNP precision (PPV) = {precision} (95% CI: {precision_lower}-{precision_upper})".format(recall = snp_recall, recall_lower = snp_recall_lowerCI, recall_upper = snp_recall_upperCI, precision = snp_precision,precision_lower = snp_precision_lowerCI,precision_upper = snp_precision_upperCI)
             # If INDEL results are present in the extended summary file, include the recall, precision and confidence intervals in the email
             if indels_found:
-                self.email_message += ("\nINDEL recall (sensitivity)= " + indel_recall 
-                                       + " (95% CI: " + indel_recall_lowerCI + " - "
-                                       + indel_recall_upperCI + ")\nINDEL precision (PPV) = "
-                                       + indel_precision + " (95% CI: " + indel_precision_lowerCI 
-                                       + " - " + indel_precision_upperCI + ")")
+                email_message += "\nINDEL recall (sensitivity)={recall} (95% CI: {recall_lower}-{recall_upper})\nINDEL precision (PPV) = {precision} (95% CI: {precision_lower}-{precision_upper})".format(recall = indel_recall, recall_lower =indel_recall_lowerCI, recall_upper = indel_recall_upperCI, precision = indel_precision,precision_lower = indel_precision_lowerCI,precision_upper = indel_precision_upperCI)
             # A link to view the detailed summary html report
             # A link to download the full output .zip archive
             # Version numbers of hap.py and the DNAnexus app that were used to produce the results
-            self.email_message += ("\n\nA detailed summary report is available here:\n" + config.url
-                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
-                                  + self.vcf_basename_orig.split(".vcf")[0] + ".summary_report.html")
-                                  + "\n\nFull results are available here:\n" + config.url
-                                  + os.path.join(settings.MEDIA_URL, self.directory.split("media/")[1], "happy."
-                                  + self.vcf_basename_orig.split(".vcf")[0] + ".zip")
-                                  + "\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py "
-                                  + config.happy_version + " (https://github.com/Illumina/hap.py) implemented in "
-                                  + "Viapath Genome Informatics DNAnexus app: " + os.path.basename(config.app_path))
-            self.send_an_email()
-            self.logfile = open(self.logfile_name, 'a')
-            self.logfile.write("finished download.\ndeleting download script\n")
-            self.logfile.close()
+            email_message += "\n\nA detailed summary report is available here:\n%s\nFull results are available here:\n%s\n\nThanks for using this tool!\n\nResults generated using Illumina hap.py %s (https://github.com/Illumina/hap.py) implemented in Synnovis Genome Informatics DNAnexus app: %s" % (os.path.join(config.url,config.MEDIA_URL, self.directory.split("media/")[1], "happy.%s.summary_report.html" % (self.vcf_basename_orig.split(".vcf")[0])),os.path.join(config.url,config.MEDIA_URL, self.directory.split("media/")[1], "happy.%s.zip" % (self.vcf_basename_orig.split(".vcf")[0])),config.happy_version,os.path.basename(config.app_path))
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("email message: %s" % email_message)
+            self.send_an_email(config.default_email_priority,email_subject,email_message,[config.mokaguys_email,self.user_email])
+            with open(self.logfile_name, 'a') as logfile:
+                logfile.write("finished download.\ndeleting download script\n")
             # delete download bash script
             os.remove(download_bash_script_name)
 
-    def send_an_email(self):
+    def send_an_email(self, priority,subject,message,recipient_list):
         """function to send an email. uses self.email_subject, self.email_message and self.email_priority"""
         # create message object
         m = Message()
         # set priority
-        m['X-Priority'] = str(self.email_priority)
+        m['X-Priority'] = priority
         # set subject
-        m['Subject'] = self.email_subject
+        m['Subject'] = subject
         # set body
-        m.set_payload(self.email_message)
-
+        m.set_payload(message)
         # server details
         server = smtplib.SMTP(host=config.host, port=config.port, timeout=10)
         server.set_debuglevel(1)  # verbosity
         server.starttls()
         server.ehlo()
-        server.login(settings.EMAIL_USER, settings.EMAIL_PASSWORD)
-        server.sendmail(config.me, self.you, m.as_string())
+        server.login(config.EMAIL_USER, config.EMAIL_PASSWORD)
+        server.sendmail(config.me, recipient_list, m.as_string())
